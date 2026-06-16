@@ -14,17 +14,18 @@ reach for `dbg!` and start counting braces:
     left: Some(RBNode { key: 8, color: Red, left: None, ...
 ```
 
-You know what this *is*. You'd sketch it on paper in five seconds. The
-terminal won't. Spytial draws it for you — change one word:
+That's a red-black tree, but you have to rebuild it in your head from the
+indentation. Spytial draws it for you — change one word:
 
 ```diff
 - std::dbg!(tree)
 + spytial::dbg!(tree)
 ```
 
-stderr stays identical. A browser tab opens with an interactive diagram of
-the same value. `spytial::dbg!` is a strict superset of `std::dbg!` —
-same calling convention, same return value, plus the picture.
+Your terminal output is unchanged; a browser tab also opens with a diagram
+of the value. `spytial::dbg!` takes the same arguments as `std::dbg!` and
+returns the value the same way, so you can drop it in anywhere `std::dbg!`
+already appears.
 
 ## Run it now
 
@@ -54,15 +55,16 @@ fn main() {
 ```
 
 `cargo run` prints the usual `dbg!` line to your terminal and opens the
-tree in your browser. That's the whole loop. Walk through it step by step
-in [Getting started](./getting-started.md).
+tree in your browser. [Getting started](./getting-started.md) walks
+through the same example line by line.
 
 ## Shape the layout with decorators
 
-The `#[attribute]` above is a *decorator*: a declarative rule attached to
-a type that says what should hold about the layout, not how to draw it.
-Add a few more and a flat graph clarifies into the picture you'd sketch —
-left children down-and-left, nodes colored by a field, scaffolding hidden:
+The `#[attribute]` above is a *decorator*: a rule attached to a type that
+says what should hold about the layout, not how to draw it. Add a few more
+and the default graph becomes a proper tree — left children go
+down-and-left, nodes are colored by a field, and the empty leaves are
+hidden:
 
 ```rust
 #[orientation(selector = "{x, y : Node | x->y in left}",  directions = ["left",  "below"])]
@@ -76,8 +78,8 @@ tree built up one rule at a time.
 
 ## How it works
 
-Three steps, all baked into the crate — nothing phones home and diagrams
-work offline:
+Three steps, all built into the crate, so diagrams work offline with no
+network calls:
 
 1. `#[derive(SpytialDecorators)]` collects your decorators at compile time.
 2. `diagram(&value)` walks the value through serde into atoms and relations.

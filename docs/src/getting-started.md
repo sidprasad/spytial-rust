@@ -10,10 +10,10 @@ spytial = "0.1"
 serde = { version = "1", features = ["derive"] }
 ```
 
-That's the whole installation — no system packages, nothing fetched at
-runtime. The HTML template and the rendering JavaScript are baked into the
-crate as `include_str!` payloads, so diagrams work offline. The minimum
-supported Rust version is **1.80**.
+There's nothing else to install: no system packages, and nothing fetched
+at runtime. The HTML template and the rendering JavaScript are compiled
+into the crate as `include_str!` payloads, so diagrams work offline. The
+minimum supported Rust version is **1.80**.
 
 ## Your first diagram
 

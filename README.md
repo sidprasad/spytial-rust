@@ -19,21 +19,22 @@ reach for `dbg!` and start counting braces.
         right: None }), right: Some(RBNode { key: 31, color: Red, ...
 ```
 
-You know what this *is*. You'd sketch it on paper in five seconds. The
-terminal won't.
+That's a red-black tree, but you have to rebuild it in your head from the
+indentation.
 
-`#[derive(Debug)]` is proof that Rust already knows how to walk your
-value. Spytial refines that walk into a faithful diagram instead of
-nested text, and exposes it through the macro you already reach for:
+Rust already knows how to walk the value — that's what `#[derive(Debug)]`
+does. Spytial reuses that walk to draw a diagram instead of printing
+nested text, through the same macro:
 
 ```diff
 - std::dbg!(tree)
 + spytial::dbg!(tree)
 ```
 
-stderr stays byte-identical. The browser opens an interactive diagram of
-the same value. `spytial::dbg!` is a strict superset of `std::dbg!` —
-same calling convention, same return semantics, plus the picture.
+Your terminal output is unchanged; a browser tab also opens with a diagram
+of the value. `spytial::dbg!` takes the same arguments as `std::dbg!` and
+returns the value the same way, so you can drop it in anywhere `std::dbg!`
+already appears.
 
 ```rust
 use spytial::{dbg, SpytialDecorators};
@@ -57,8 +58,7 @@ Decorators describe *what should hold* about the layout, not *how to
 render* it. They're declarative constraints, attached to the type once,
 applied everywhere a value of that type appears. The
 [progressive-refinement walkthrough](https://sidprasad.github.io/spytial-rust/decorators.html)
-shows how a flat graph clarifies into a red-black tree as constraints
-accumulate.
+shows a flat graph turning into a red-black tree as you add constraints.
 
 For the design philosophy and motivating examples, see Brown PLT's blog
 post: [Diagramming Program Values by Spatial Refinement](https://blog.brownplt.org/2026/05/22/spytial.html).
