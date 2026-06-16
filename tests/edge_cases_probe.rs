@@ -4,8 +4,8 @@
 //! at all on each shape, not whether the result is semantically rich. If a
 //! variant fails to compile, the macro has a hole worth fixing or documenting.
 
-use spytial::SpytialDecorators;
 use serde::Serialize;
+use spytial::SpytialDecorators;
 
 #[derive(Serialize, SpytialDecorators)]
 struct UnitStruct;

@@ -11,8 +11,8 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use spytial::{export_json_instance, from_datum, replit};
 use serde::{Deserialize, Serialize};
+use spytial::{export_json_instance, from_datum, replit};
 
 /// R-eq only (use for types whose `{:?}` is order-sensitive, e.g. HashMap).
 fn eq_roundtrip<T>(v: T)

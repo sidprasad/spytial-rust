@@ -1,5 +1,5 @@
-use spytial::export_json_instance;
 use serde::Serialize;
+use spytial::export_json_instance;
 
 #[derive(Serialize)]
 #[allow(dead_code)]
@@ -38,6 +38,4 @@ fn main() {
             println!("    types: {:?}", tuple.types);
         }
     }
-
-
 }

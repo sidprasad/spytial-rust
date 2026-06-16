@@ -6,9 +6,9 @@
 //! pipeline. They MUST set `SPYTIAL_NO_OPEN=1` so CI/headless runs don't
 //! try to open a browser.
 
+use serde::Serialize;
 use spytial::export::try_export_json_instance;
 use spytial::{dbg, diagram, export_json_instance, SpytialDecorators};
-use serde::Serialize;
 use std::env;
 use std::fs;
 use std::path::PathBuf;

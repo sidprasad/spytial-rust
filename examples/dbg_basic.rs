@@ -12,8 +12,8 @@
 //! SPYTIAL_NO_OPEN=1 cargo run --example dbg_basic
 //! ```
 
-use spytial::{dbg, SpytialDecorators};
 use serde::Serialize;
+use spytial::{dbg, SpytialDecorators};
 
 #[derive(Debug, Serialize, SpytialDecorators)]
 #[attribute(field = "key")]

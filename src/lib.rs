@@ -24,8 +24,8 @@ pub mod spytial_annotations;
 pub use export::export_json_instance;
 pub use reify::{from_datum, from_datum_root, replit, replit_root, ReifyError};
 // Re-export the derive macro for spatial annotations
-pub use spytial_export_macros::SpytialDecorators;
 use serde::Serialize;
+pub use spytial_export_macros::SpytialDecorators;
 use std::env;
 use std::fs;
 use std::path::PathBuf;

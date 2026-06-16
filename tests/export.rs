@@ -4,11 +4,11 @@
 //! atoms, relations, type information, and how nested / annotated structs
 //! compose.
 
+use serde::Serialize;
 use spytial::export::export_json_instance;
 use spytial::jsondata::{IAtom, IRelation, JsonDataInstance};
 use spytial::spytial_annotations::{to_yaml, Constraint, Directive, HasSpytialDecorators};
 use spytial::SpytialDecorators;
-use serde::Serialize;
 
 // ──────────────────────────────────────────────
 // Helpers

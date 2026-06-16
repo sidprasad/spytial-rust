@@ -1,9 +1,9 @@
+use serde::Serialize;
 use spytial::spytial_annotations::{
     to_yaml, Constraint, Directive, GroupParams, HasSpytialDecorators,
     SpytialDecorators as SpytialDecoratorsType, SpytialDecoratorsBuilder,
 };
 use spytial::SpytialDecorators;
-use serde::Serialize;
 
 #[derive(Serialize, SpytialDecorators)]
 #[align(selector = "peer", direction = "horizontal")]
