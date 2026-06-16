@@ -1,9 +1,9 @@
-use caraspace::spytial_annotations::{
+use serde::Serialize;
+use spytial::spytial_annotations::{
     to_yaml, Constraint, Directive, GroupParams, HasSpytialDecorators,
     SpytialDecorators as SpytialDecoratorsType, SpytialDecoratorsBuilder,
 };
-use caraspace::SpytialDecorators;
-use serde::Serialize;
+use spytial::SpytialDecorators;
 
 #[derive(Serialize, SpytialDecorators)]
 #[align(selector = "peer", direction = "horizontal")]

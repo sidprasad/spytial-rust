@@ -72,7 +72,7 @@ use std::fmt;
 pub fn export_json_instance<T: Serialize>(value: &T) -> JsonDataInstance {
     try_export_json_instance(value).unwrap_or_else(|err| {
         eprintln!(
-            "caraspace: serialization failed, returning empty instance: {}",
+            "spytial: serialization failed, returning empty instance: {}",
             err.message()
         );
         JsonDataInstance {
@@ -105,7 +105,7 @@ pub fn export_json_instance_with_decorators<T: Serialize>(
 ) -> (JsonDataInstance, SpytialDecorators) {
     try_export_json_instance_with_decorators(value, root_type_name).unwrap_or_else(|err| {
         eprintln!(
-            "caraspace: serialization failed, returning empty instance: {}",
+            "spytial: serialization failed, returning empty instance: {}",
             err.message()
         );
         (

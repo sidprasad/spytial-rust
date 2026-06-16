@@ -1,6 +1,6 @@
 //! Relational JSON data model produced by [`crate::export_json_instance`].
 //!
-//! Every Rust value caraspace visualizes is flattened into this shape:
+//! Every Rust value spytial visualizes is flattened into this shape:
 //! a flat list of [`IAtom`](crate::jsondata::IAtom) nodes plus a flat list of
 //! [`IRelation`](crate::jsondata::IRelation) edges grouped by name. The same
 //! shape is what spytial-core consumes on the JavaScript side — these structs

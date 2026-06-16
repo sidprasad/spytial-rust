@@ -4,11 +4,11 @@
 //! atoms, relations, type information, and how nested / annotated structs
 //! compose.
 
-use caraspace::export::export_json_instance;
-use caraspace::jsondata::{IAtom, IRelation, JsonDataInstance};
-use caraspace::spytial_annotations::{to_yaml, Constraint, Directive, HasSpytialDecorators};
-use caraspace::SpytialDecorators;
 use serde::Serialize;
+use spytial::export::export_json_instance;
+use spytial::jsondata::{IAtom, IRelation, JsonDataInstance};
+use spytial::spytial_annotations::{to_yaml, Constraint, Directive, HasSpytialDecorators};
+use spytial::SpytialDecorators;
 
 // ──────────────────────────────────────────────
 // Helpers

@@ -1,4 +1,4 @@
-//! Minimal end-to-end example of `caraspace::dbg!`.
+//! Minimal end-to-end example of `spytial::dbg!`.
 //!
 //! Run with:
 //!
@@ -12,8 +12,8 @@
 //! SPYTIAL_NO_OPEN=1 cargo run --example dbg_basic
 //! ```
 
-use caraspace::{dbg, SpytialDecorators};
 use serde::Serialize;
+use spytial::{dbg, SpytialDecorators};
 
 #[derive(Debug, Serialize, SpytialDecorators)]
 #[attribute(field = "key")]

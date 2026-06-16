@@ -1,4 +1,4 @@
-//! Caraspace is a drop-in replacement for [`std::dbg!`] that opens an
+//! Spytial is a drop-in replacement for [`std::dbg!`] that opens an
 //! interactive diagram of Rust values in the browser.
 //!
 //! The crate-level entry points are [`dbg!`] (a strict superset of
@@ -6,7 +6,7 @@
 //! type that derives [`std::fmt::Debug`], [`serde::Serialize`], and
 //! [`SpytialDecorators`].
 //!
-//! Start with the guide at <https://sidprasad.github.io/caraspace/> for the
+//! Start with the guide at <https://sidprasad.github.io/spytial-rust/> for the
 //! tutorial, decorator reference, and architecture notes. The README on
 //! GitHub has the elevator pitch.
 
@@ -24,8 +24,8 @@ pub mod spytial_annotations;
 pub use export::export_json_instance;
 pub use reify::{from_datum, from_datum_root, replit, replit_root, ReifyError};
 // Re-export the derive macro for spatial annotations
-pub use caraspace_export_macros::SpytialDecorators;
 use serde::Serialize;
+pub use spytial_export_macros::SpytialDecorators;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -52,7 +52,7 @@ fn diagram_output_path() -> PathBuf {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.subsec_nanos())
         .unwrap_or(0);
-    env::temp_dir().join(format!("caraspace-{pid}-{counter}-{nanos}.html"))
+    env::temp_dir().join(format!("spytial-{pid}-{counter}-{nanos}.html"))
 }
 
 /// Creates a diagram of the given data structure and opens it in the browser.
@@ -68,7 +68,7 @@ fn diagram_output_path() -> PathBuf {
 /// ## Example:
 /// ```no_run
 /// use serde::Serialize;
-/// use caraspace::{diagram, SpytialDecorators};
+/// use spytial::{diagram, SpytialDecorators};
 ///
 /// #[derive(Serialize, SpytialDecorators)]
 /// #[attribute(field = "name")]
@@ -126,7 +126,7 @@ pub fn diagram_with_spec<T: Serialize>(value: &T, spec: &str) {
 /// stderr *and* opens an interactive diagram of the value in your browser.
 ///
 /// The calling convention matches `std::dbg!` exactly, so swapping
-/// `std::dbg!` for `caraspace::dbg!` (or `use caraspace::dbg;`) is purely
+/// `std::dbg!` for `spytial::dbg!` (or `use spytial::dbg;`) is purely
 /// additive — you keep the stderr trail you already rely on and get the
 /// diagram on top.
 ///
@@ -144,7 +144,7 @@ pub fn diagram_with_spec<T: Serialize>(value: &T, spec: &str) {
 /// # Examples
 ///
 /// ```no_run
-/// use caraspace::{dbg, SpytialDecorators};
+/// use spytial::{dbg, SpytialDecorators};
 /// use serde::Serialize;
 ///
 /// #[derive(Debug, Serialize, SpytialDecorators)]
@@ -210,7 +210,7 @@ fn diagram_impl<T: Serialize>(value: &T, spec: &str) {
     let json_data = match serde_json::to_string_pretty(&json_instance) {
         Ok(json) => json,
         Err(err) => {
-            eprintln!("caraspace: could not encode diagram JSON, skipping: {err}");
+            eprintln!("spytial: could not encode diagram JSON, skipping: {err}");
             return;
         }
     };
@@ -239,7 +239,7 @@ fn diagram_impl<T: Serialize>(value: &T, spec: &str) {
     let temp_file_path = diagram_output_path();
     if let Err(err) = fs::write(&temp_file_path, rendered_html) {
         eprintln!(
-            "caraspace: could not write diagram to {}: {err}",
+            "spytial: could not write diagram to {}: {err}",
             temp_file_path.display()
         );
         return;
@@ -250,7 +250,7 @@ fn diagram_impl<T: Serialize>(value: &T, spec: &str) {
         .unwrap_or(false);
 
     if skip_browser_open {
-        eprintln!("caraspace: diagram written to {}", temp_file_path.display());
+        eprintln!("spytial: diagram written to {}", temp_file_path.display());
         return;
     }
 
@@ -279,7 +279,7 @@ fn diagram_impl<T: Serialize>(value: &T, spec: &str) {
 
     let Some(open_cmd) = open_cmd else {
         eprintln!(
-            "caraspace: no known browser-open command for this platform. Open this file manually: {}",
+            "spytial: no known browser-open command for this platform. Open this file manually: {}",
             temp_file_path.display()
         );
         return;
@@ -287,7 +287,7 @@ fn diagram_impl<T: Serialize>(value: &T, spec: &str) {
 
     if let Err(err) = Command::new(open_cmd).arg(&temp_file_path).spawn() {
         eprintln!(
-            "caraspace: failed to open browser ({err}). Open this file manually: {}",
+            "spytial: failed to open browser ({err}). Open this file manually: {}",
             temp_file_path.display()
         );
     }

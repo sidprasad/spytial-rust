@@ -123,8 +123,8 @@ fn generate_probe_call(type_name: &str) -> proc_macro2::TokenStream {
     let type_ident = syn::Ident::new(type_name, proc_macro2::Span::call_site());
     quote! {
         .extend_with({
-            use caraspace::spytial_annotations::DefaultDecorators as _;
-            caraspace::spytial_annotations::DecoProbe::<#type_ident>(::std::marker::PhantomData).get()
+            use spytial::spytial_annotations::DefaultDecorators as _;
+            spytial::spytial_annotations::DecoProbe::<#type_ident>(::std::marker::PhantomData).get()
         })
     }
 }
@@ -156,7 +156,7 @@ fn generate_probe_call(type_name: &str) -> proc_macro2::TokenStream {
 /// # Example
 /// ```rust
 /// use serde::Serialize;
-/// use caraspace::SpytialDecorators;
+/// use spytial::SpytialDecorators;
 ///
 /// #[derive(Serialize, SpytialDecorators)]
 /// #[attribute(field = "name")]
@@ -371,21 +371,21 @@ pub fn derive_spytial_decorators(input: TokenStream) -> TokenStream {
 
     // Generate the HasSpytialDecorators implementation
     let expanded = quote! {
-        impl #impl_generics caraspace::spytial_annotations::HasSpytialDecorators for #name #ty_generics #where_clause {
-            fn decorators() -> caraspace::spytial_annotations::SpytialDecorators {
+        impl #impl_generics spytial::spytial_annotations::HasSpytialDecorators for #name #ty_generics #where_clause {
+            fn decorators() -> spytial::spytial_annotations::SpytialDecorators {
                 // Register this type automatically when decorators() is called
                 static REGISTRATION: ::std::sync::Once = ::std::sync::Once::new();
                 REGISTRATION.call_once(|| {
-                    let decorators = caraspace::spytial_annotations::SpytialDecoratorsBuilder::new()
+                    let decorators = spytial::spytial_annotations::SpytialDecoratorsBuilder::new()
                         #(#decorator_calls)*
                         .build();
-                    caraspace::spytial_annotations::register_type_decorators(
+                    spytial::spytial_annotations::register_type_decorators(
                         stringify!(#name),
                         decorators.clone()
                     );
                 });
 
-                caraspace::spytial_annotations::SpytialDecoratorsBuilder::new()
+                spytial::spytial_annotations::SpytialDecoratorsBuilder::new()
                     #(#decorator_calls)*
                     .build()
             }

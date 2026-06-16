@@ -1,4 +1,4 @@
-//! Round-trip tests for `caraspace::reify` — the inverse of `export`.
+//! Round-trip tests for `spytial::reify` — the inverse of `export`.
 //!
 //! Two oracles per case:
 //!   * **R-eq**       `v == from_datum(export(v))`               (exact value)
@@ -11,8 +11,8 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use caraspace::{export_json_instance, from_datum, replit};
 use serde::{Deserialize, Serialize};
+use spytial::{export_json_instance, from_datum, replit};
 
 /// R-eq only (use for types whose `{:?}` is order-sensitive, e.g. HashMap).
 fn eq_roundtrip<T>(v: T)
@@ -192,7 +192,7 @@ fn explicit_root() {
     // from_datum_root lets callers start from a chosen atom id; atom0 is the root.
     let v = Point { x: 7, y: 8 };
     let di = export_json_instance(&v);
-    let back: Point = caraspace::from_datum_root(&di, "atom0").unwrap();
+    let back: Point = spytial::from_datum_root(&di, "atom0").unwrap();
     assert_eq!(v, back);
 }
 

@@ -1,5 +1,5 @@
-use caraspace::{dbg, SpytialDecorators};
 use serde::Serialize;
+use spytial::{dbg, SpytialDecorators};
 
 #[derive(Debug, Serialize, SpytialDecorators)]
 struct RBTree {

@@ -1,5 +1,5 @@
-use caraspace::{diagram, SpytialDecorators};
 use serde::Serialize;
+use spytial::{diagram, SpytialDecorators};
 
 #[derive(Serialize, SpytialDecorators, Debug)]
 #[attribute(field = "name")]

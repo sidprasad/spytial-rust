@@ -1,5 +1,5 @@
-use caraspace::export_json_instance;
 use serde::Serialize;
+use spytial::export_json_instance;
 
 #[derive(Serialize)]
 struct Node {

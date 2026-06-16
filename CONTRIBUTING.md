@@ -1,4 +1,4 @@
-# Contributing to caraspace
+# Contributing to spytial
 
 Contributions are welcome via pull requests. Bug reports, feature requests,
 and questions are also welcome on the issue tracker.

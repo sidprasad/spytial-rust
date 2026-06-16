@@ -1,15 +1,15 @@
 [package]
-name = "caraspace_export_macros"
+name = "spytial_export_macros"
 version = "0.1.0"
 edition = "2021"
 authors = ["Siddhartha Prasad <siddhartha.a.prasad@gmail.com>"]
 rust-version = "1.80"
-description = "Procedural macros for the caraspace crate (SpytialDecorators derive)."
+description = "Procedural macros for the spytial crate (SpytialDecorators derive)."
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
-repository = "https://github.com/sidprasad/caraspace"
-documentation = "https://docs.rs/caraspace_export_macros"
-homepage = "https://github.com/sidprasad/caraspace"
+repository = "https://github.com/sidprasad/spytial-rust"
+documentation = "https://docs.rs/spytial_export_macros"
+homepage = "https://github.com/sidprasad/spytial-rust"
 keywords = ["spytial", "visualization", "macro", "derive"]
 categories = ["development-tools::procedural-macro-helpers"]
 

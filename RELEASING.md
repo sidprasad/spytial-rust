@@ -1,9 +1,9 @@
-# Releasing caraspace
+# Releasing spytial
 
 This repo publishes two crates to crates.io:
 
-- `caraspace_export_macros` — the proc-macro sub-crate (must publish first)
-- `caraspace` — the main crate (depends on the above)
+- `spytial_export_macros` — the proc-macro sub-crate (must publish first)
+- `spytial` — the main crate (depends on the above)
 
 Releases run via OIDC-based [trusted publishing](https://crates.io/docs/trusted-publishing).
 After a one-time bootstrap, no long-lived crates.io tokens live anywhere —
@@ -14,7 +14,7 @@ token on each release.
 
 Crates.io's trusted publishing requires each crate to have been published
 at least once via a regular API token before OIDC can be configured.
-Skip this section if both `caraspace` and `caraspace_export_macros` are
+Skip this section if both `spytial` and `spytial_export_macros` are
 already on crates.io.
 
 1. Get a token from https://crates.io/me with the `publish-new` scope.
@@ -45,13 +45,13 @@ already on crates.io.
 
 ## Configure trusted publishing (one-time per crate)
 
-For each crate (`caraspace` and `caraspace_export_macros`):
+For each crate (`spytial` and `spytial_export_macros`):
 
 1. Sign in to https://crates.io with the GitHub account that owns the crate
 2. Navigate to the crate's settings → **Trusted Publishers**
 3. Add a new GitHub Actions publisher with:
    - **Repository owner**: `sidprasad`
-   - **Repository name**: `caraspace`
+   - **Repository name**: `spytial`
    - **Workflow filename**: `release.yml`
    - **Environment**: (leave empty)
 
@@ -62,7 +62,7 @@ any leaked token from being able to publish.
 ## Releasing a new version
 
 1. On a branch, bump versions in `Cargo.toml` (both `version` and the
-   `caraspace_export_macros` dependency) and in `macros/Cargo.toml`. Keep
+   `spytial_export_macros` dependency) and in `macros/Cargo.toml`. Keep
    them in sync.
 2. Open and merge the version-bump PR.
 3. From `main`, tag and push:
@@ -77,11 +77,11 @@ any leaked token from being able to publish.
 4. The `Release` workflow at `.github/workflows/release.yml` runs
    automatically and:
    - Authenticates to crates.io via OIDC (no token used)
-   - Publishes `caraspace_export_macros`
+   - Publishes `spytial_export_macros`
    - Waits 60 seconds for the index to update
-   - Publishes `caraspace`
+   - Publishes `spytial`
 
-Watch progress at https://github.com/sidprasad/caraspace/actions.
+Watch progress at https://github.com/sidprasad/spytial-rust/actions.
 
 The workflow also supports manual triggering via `workflow_dispatch` if a
 release needs to be re-run (e.g. after a transient crates.io failure on

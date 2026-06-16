@@ -1,35 +1,14 @@
 # Summary
 
-[Introduction](./introduction.md)
+[Spytial for Rust](./introduction.md)
 
-# Getting Started
+# Guide
 
-- [Install](./getting-started/install.md)
-- [Quick start](./getting-started/quickstart.md)
-- [Your first diagram](./getting-started/first-diagram.md)
-
-# Decorators
-
-- [Specs, not draw calls](./decorators/overview.md)
-- [Attribute reference](./decorators/attributes.md)
-- [Progressive refinement: a red-black tree](./decorators/progressive-refinement.md)
-- [Negated constraints](./decorators/negated.md)
-
-# Workflows
-
-- [Headless mode](./workflows/headless.md)
-- [Docker](./workflows/docker.md)
-- [Library integration](./workflows/library.md)
-
-# Internals
-
-- [Architecture overview](./internals/architecture.md)
-- [Compile-time decorator collection](./internals/compile-time.md)
-- [Serialization as structure discovery](./internals/serialization.md)
-- [Supported field types](./internals/field-types.md)
+- [Getting started](./getting-started.md)
+- [Decorators](./decorators.md)
+- [Running headless & in Docker](./headless.md)
+- [Library API](./library.md)
 
 # Appendix
 
-- [Changelog](./appendix/changelog.md)
-- [Releasing](./appendix/releasing.md)
-- [Contributing](./appendix/contributing.md)
+- [Contributing](./contributing.md)
