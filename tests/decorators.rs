@@ -1,8 +1,8 @@
-use caraspace::spytial_annotations::{
+use spytial::spytial_annotations::{
     to_yaml, Constraint, Directive, GroupParams, HasSpytialDecorators,
     SpytialDecorators as SpytialDecoratorsType, SpytialDecoratorsBuilder,
 };
-use caraspace::SpytialDecorators;
+use spytial::SpytialDecorators;
 use serde::Serialize;
 
 #[derive(Serialize, SpytialDecorators)]

@@ -1,9 +1,9 @@
-# Caraspace
+# Spytial
 
-[![crates.io](https://img.shields.io/crates/v/caraspace.svg)](https://crates.io/crates/caraspace)
-[![docs.rs](https://img.shields.io/docsrs/caraspace)](https://docs.rs/caraspace)
-[![PR checks](https://github.com/sidprasad/caraspace/actions/workflows/pr.yml/badge.svg)](https://github.com/sidprasad/caraspace/actions/workflows/pr.yml)
-[![License](https://img.shields.io/crates/l/caraspace.svg)](#license)
+[![crates.io](https://img.shields.io/crates/v/spytial.svg)](https://crates.io/crates/spytial)
+[![docs.rs](https://img.shields.io/docsrs/spytial)](https://docs.rs/spytial)
+[![PR checks](https://github.com/sidprasad/spytial-rust/actions/workflows/pr.yml/badge.svg)](https://github.com/sidprasad/spytial-rust/actions/workflows/pr.yml)
+[![License](https://img.shields.io/crates/l/spytial.svg)](#license)
 
 You can prove memory safety at compile time. You can derive `Hash`, `Ord`,
 and `Serialize` from a single line. And yet, when you want to know the
@@ -23,20 +23,20 @@ You know what this *is*. You'd sketch it on paper in five seconds. The
 terminal won't.
 
 `#[derive(Debug)]` is proof that Rust already knows how to walk your
-value. Caraspace refines that walk into a faithful diagram instead of
+value. Spytial refines that walk into a faithful diagram instead of
 nested text, and exposes it through the macro you already reach for:
 
 ```diff
 - std::dbg!(tree)
-+ caraspace::dbg!(tree)
++ spytial::dbg!(tree)
 ```
 
 stderr stays byte-identical. The browser opens an interactive diagram of
-the same value. `caraspace::dbg!` is a strict superset of `std::dbg!` —
+the same value. `spytial::dbg!` is a strict superset of `std::dbg!` —
 same calling convention, same return semantics, plus the picture.
 
 ```rust
-use caraspace::{dbg, SpytialDecorators};
+use spytial::{dbg, SpytialDecorators};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, SpytialDecorators)]
@@ -56,7 +56,7 @@ let tree = dbg!(tree); // returns `tree` through; diagram opens in browser
 Decorators describe *what should hold* about the layout, not *how to
 render* it. They're declarative constraints, attached to the type once,
 applied everywhere a value of that type appears. The
-[progressive-refinement walkthrough](https://sidprasad.github.io/caraspace/decorators/progressive-refinement.html)
+[progressive-refinement walkthrough](https://sidprasad.github.io/spytial-rust/decorators.html)
 shows how a flat graph clarifies into a red-black tree as constraints
 accumulate.
 
@@ -67,7 +67,7 @@ post: [Diagramming Program Values by Spatial Refinement](https://blog.brownplt.o
 
 ```toml
 [dependencies]
-caraspace = "0.1"
+spytial = "0.1"
 serde = { version = "1", features = ["derive"] }
 ```
 
@@ -95,7 +95,7 @@ Environment variables:
 For library code, or anywhere you don't want stderr noise:
 
 ```rust
-use caraspace::diagram;
+use spytial::diagram;
 diagram(&tree); // no stderr, no source location, doesn't move
 ```
 
@@ -114,9 +114,9 @@ cargo run --example rbt           # progressive refinement of a red-black tree
 ## Headless / Docker
 
 ```bash
-docker build -t caraspace .
-docker run --rm -p 8080:8080 caraspace          # default: rbt
-docker run --rm -p 8080:8080 caraspace demo
+docker build -t spytial .
+docker run --rm -p 8080:8080 spytial          # default: rbt
+docker run --rm -p 8080:8080 spytial demo
 ```
 
 Open `http://localhost:8080/rust_viz_data.html`. Browser launch is
@@ -124,8 +124,8 @@ disabled inside the container (`SPYTIAL_NO_OPEN=1`).
 
 ## Docs
 
-- **Guide:** <https://sidprasad.github.io/caraspace/> — install, decorators, workflows, internals
-- **API:** <https://docs.rs/caraspace> — generated rustdoc
+- **Guide:** <https://sidprasad.github.io/spytial-rust/> — install, decorators, workflows, internals
+- **API:** <https://docs.rs/spytial> — generated rustdoc
 - **Design:** [Diagramming Program Values by Spatial Refinement](https://blog.brownplt.org/2026/05/22/spytial.html)
 
 ## Status

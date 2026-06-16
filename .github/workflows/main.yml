@@ -44,8 +44,8 @@ jobs:
           push: true
           platforms: ${{ matrix.platform }}
           tags: |
-            ghcr.io/sidprasad/caraspace:${{ github.sha }}-${{ matrix.arch }}
-            ghcr.io/sidprasad/caraspace:latest-${{ matrix.arch }}
+            ghcr.io/sidprasad/spytial-rust:${{ github.sha }}-${{ matrix.arch }}
+            ghcr.io/sidprasad/spytial-rust:latest-${{ matrix.arch }}
           provenance: false
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,scope=${{ matrix.arch }},mode=max
@@ -67,14 +67,14 @@ jobs:
 
       - name: Create and push SHA manifest
         run: |
-          docker manifest create ghcr.io/sidprasad/caraspace:${{ github.sha }} \
-            ghcr.io/sidprasad/caraspace:${{ github.sha }}-amd64 \
-            ghcr.io/sidprasad/caraspace:${{ github.sha }}-arm64
-          docker manifest push ghcr.io/sidprasad/caraspace:${{ github.sha }}
+          docker manifest create ghcr.io/sidprasad/spytial-rust:${{ github.sha }} \
+            ghcr.io/sidprasad/spytial-rust:${{ github.sha }}-amd64 \
+            ghcr.io/sidprasad/spytial-rust:${{ github.sha }}-arm64
+          docker manifest push ghcr.io/sidprasad/spytial-rust:${{ github.sha }}
 
       - name: Create and push latest manifest
         run: |
-          docker manifest create ghcr.io/sidprasad/caraspace:latest \
-            ghcr.io/sidprasad/caraspace:latest-amd64 \
-            ghcr.io/sidprasad/caraspace:latest-arm64
-          docker manifest push ghcr.io/sidprasad/caraspace:latest
+          docker manifest create ghcr.io/sidprasad/spytial-rust:latest \
+            ghcr.io/sidprasad/spytial-rust:latest-amd64 \
+            ghcr.io/sidprasad/spytial-rust:latest-arm64
+          docker manifest push ghcr.io/sidprasad/spytial-rust:latest

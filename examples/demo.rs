@@ -1,4 +1,4 @@
-use caraspace::{diagram, SpytialDecorators};
+use spytial::{diagram, SpytialDecorators};
 use serde::Serialize;
 
 #[derive(Serialize, SpytialDecorators, Debug)]

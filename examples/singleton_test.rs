@@ -1,4 +1,4 @@
-use caraspace::export_json_instance;
+use spytial::export_json_instance;
 use serde::Serialize;
 
 #[derive(Serialize)]

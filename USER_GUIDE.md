@@ -1,9 +1,10 @@
-# CaraSpace User Guide
+# Spytial User Guide
 
-The user guide has moved to <https://sidprasad.github.io/caraspace/>.
+The user guide has moved to <https://sidprasad.github.io/spytial-rust/>.
 
-- [Quick start](https://sidprasad.github.io/caraspace/getting-started/quickstart.html)
-- [Decorator attribute reference](https://sidprasad.github.io/caraspace/decorators/attributes.html)
-- [Workflows: headless, Docker, library](https://sidprasad.github.io/caraspace/workflows/headless.html)
+- [Getting started](https://sidprasad.github.io/spytial-rust/getting-started.html)
+- [Decorators](https://sidprasad.github.io/spytial-rust/decorators.html)
+- [Running headless & in Docker](https://sidprasad.github.io/spytial-rust/headless.html)
+- [Library API](https://sidprasad.github.io/spytial-rust/library.html)
 
 This file is kept as a redirect so existing links don't break.

@@ -1,4 +1,4 @@
-//! End-to-end tests for the `caraspace::dbg!` macro and the supporting
+//! End-to-end tests for the `spytial::dbg!` macro and the supporting
 //! `diagram` / `export_json_instance` / `try_export_json_instance` surface.
 //!
 //! These tests lock in the `std::dbg!`-parity contract (move/borrow forms,
@@ -6,8 +6,8 @@
 //! pipeline. They MUST set `SPYTIAL_NO_OPEN=1` so CI/headless runs don't
 //! try to open a browser.
 
-use caraspace::export::try_export_json_instance;
-use caraspace::{dbg, diagram, export_json_instance, SpytialDecorators};
+use spytial::export::try_export_json_instance;
+use spytial::{dbg, diagram, export_json_instance, SpytialDecorators};
 use serde::Serialize;
 use std::env;
 use std::fs;
@@ -56,7 +56,7 @@ fn unique_output_path(tag: &str) -> PathBuf {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.subsec_nanos())
         .unwrap_or(0);
-    env::temp_dir().join(format!("caraspace-e2e-{tag}-{pid}-{counter}-{nanos}.html"))
+    env::temp_dir().join(format!("spytial-e2e-{tag}-{pid}-{counter}-{nanos}.html"))
 }
 
 // ──────────────────────────────────────────────
@@ -238,7 +238,7 @@ fn diagram_writes_html_file() {
     }
 
     let value = Marker {
-        unique_marker_field: "caraspace-dbg-e2e-marker-XYZ123".to_string(),
+        unique_marker_field: "spytial-dbg-e2e-marker-XYZ123".to_string(),
     };
     let target = unique_output_path("diagram-html");
 
@@ -266,7 +266,7 @@ fn diagram_writes_html_file() {
     // The unique field value should be embedded as a string atom label
     // in the JSON payload baked into the HTML.
     assert!(
-        contents.contains("caraspace-dbg-e2e-marker-XYZ123"),
+        contents.contains("spytial-dbg-e2e-marker-XYZ123"),
         "rendered HTML at {} should contain the unique marker value",
         target.display(),
     );

@@ -17,13 +17,13 @@ WORKDIR /app
 
 COPY --from=builder /app/target/release/examples/ /app/examples/
 COPY --from=builder /app/target/release/viz_server /usr/local/bin/viz-server
-COPY docker-entrypoint.sh /usr/local/bin/caraspace-example
-RUN chmod +x /usr/local/bin/caraspace-example /usr/local/bin/viz-server
+COPY docker-entrypoint.sh /usr/local/bin/spytial-example
+RUN chmod +x /usr/local/bin/spytial-example /usr/local/bin/viz-server
 
 ENV SPYTIAL_NO_OPEN=1
 ENV SPYTIAL_PORT=8080
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/caraspace-example"]
+ENTRYPOINT ["/usr/local/bin/spytial-example"]
 CMD ["rbt"]

@@ -31,7 +31,7 @@ jobs:
         id: auth
         uses: rust-lang/crates-io-auth-action@v1
 
-      - name: Publish caraspace_export_macros
+      - name: Publish spytial_export_macros
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: cargo publish --manifest-path macros/Cargo.toml
@@ -39,7 +39,7 @@ jobs:
       - name: Wait for crates.io index to update
         run: sleep 60
 
-      - name: Publish caraspace
+      - name: Publish spytial
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: cargo publish

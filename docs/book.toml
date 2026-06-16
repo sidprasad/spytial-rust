@@ -1,17 +1,17 @@
 [book]
-title = "Caraspace"
+title = "Spytial for Rust"
 authors = ["Siddhartha Prasad"]
-description = "Drop-in replacement for std::dbg! that opens an interactive diagram of Rust values."
+description = "Spytial for Rust. A drop-in replacement for std::dbg! that opens an interactive diagram of Rust values."
 language = "en"
 src = "src"
 
 [output.html]
 default-theme = "rust"
 preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/sidprasad/caraspace"
+git-repository-url = "https://github.com/sidprasad/spytial-rust"
 git-repository-icon = "fa-github"
-edit-url-template = "https://github.com/sidprasad/caraspace/edit/main/docs/{path}"
-site-url = "/caraspace/"
+edit-url-template = "https://github.com/sidprasad/spytial-rust/edit/main/docs/{path}"
+site-url = "/spytial-rust/"
 
 [output.html.search]
 enable = true

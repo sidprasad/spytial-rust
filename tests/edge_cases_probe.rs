@@ -4,7 +4,7 @@
 //! at all on each shape, not whether the result is semantically rich. If a
 //! variant fails to compile, the macro has a hole worth fixing or documenting.
 
-use caraspace::SpytialDecorators;
+use spytial::SpytialDecorators;
 use serde::Serialize;
 
 #[derive(Serialize, SpytialDecorators)]
@@ -63,7 +63,7 @@ struct DecoratedUnit;
 #[attribute(field = "key")]
 enum DecoratedEmpty {}
 
-use caraspace::spytial_annotations::HasSpytialDecorators;
+use spytial::spytial_annotations::HasSpytialDecorators;
 
 #[test]
 fn unit_struct_has_empty_decorators() {

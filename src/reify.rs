@@ -273,7 +273,7 @@ impl<'i, 'a, 'de> Deserializer<'de> for NodeDeserializer<'i, 'a> {
 
     fn deserialize_any<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value, ReifyError> {
         Err(ReifyError::msg(
-            "deserialize_any is unsupported: caraspace reify is type-driven, pass a concrete T",
+            "deserialize_any is unsupported: spytial reify is type-driven, pass a concrete T",
         ))
     }
 
@@ -313,7 +313,7 @@ impl<'i, 'a, 'de> Deserializer<'de> for NodeDeserializer<'i, 'a> {
 
     fn deserialize_bytes<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value, ReifyError> {
         Err(ReifyError::msg(
-            "bytes are not supported by caraspace reify yet",
+            "bytes are not supported by spytial reify yet",
         ))
     }
 
