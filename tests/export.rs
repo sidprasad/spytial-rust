@@ -62,7 +62,7 @@ struct Flat {
 #[test]
 fn flat_struct_produces_field_relations() {
     let val = Flat {
-        name: "Alice".into(),
+        name: "Elizabeth".into(),
         age: 30,
     };
     let inst = export_json_instance(&val);
@@ -76,7 +76,7 @@ fn flat_struct_produces_field_relations() {
     assert_eq!(name_rel.tuples.len(), 1);
     let name_target_id = &name_rel.tuples[0].atoms[1];
     let name_atom = atom_by_id(&inst, name_target_id);
-    assert_eq!(name_atom.label, "Alice");
+    assert_eq!(name_atom.label, "Elizabeth");
 
     // age relation links root → u32 atom
     let age_rel = relation(&inst, "age");

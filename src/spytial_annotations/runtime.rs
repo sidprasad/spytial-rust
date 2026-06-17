@@ -450,27 +450,22 @@ impl<T: HasSpytialDecorators + ?Sized> HasSpytialDecorators for &T {
     }
 }
 
-// ── Probe mechanism for safe compile-time decorator collection ──────────
+// Probe mechanism for safe compile-time decorator collection.
 //
-// Problem: the derive macro needs to collect decorators from field types,
-// but it can't tell at macro-expansion time whether a type implements
-// `HasSpytialDecorators`.  Generating `.include_decorators_from_type::<T>()`
-// for a type that *doesn't* implement the trait would be a compile error.
-//
-// Solution: a zero-cost probe that resolves at the call-site (where the
-// concrete type is known).  Inherent methods always beat trait methods in
-// Rust's method resolution, so:
-//
-//   - If `T: HasSpytialDecorators` → the inherent `get()` is chosen → real
-//     decorators.
-//   - Otherwise → `DefaultDecorators::get()` is chosen → empty decorators.
-//
+// The derive macro collects decorators from field types, but at expansion time
+// it can't tell whether a given field type implements `HasSpytialDecorators` —
+// emitting a call that requires the bound would fail to compile for types that
+// don't. The probe defers the decision to the call site, where the concrete type
+// is known. Inherent methods outrank trait methods in Rust's method resolution,
+// so `DecoProbe::<T>::get` resolves to the inherent method (real `T::decorators()`)
+// when `T: HasSpytialDecorators`, and to the blanket `DefaultDecorators::get`
+// (an empty set) otherwise.
 
 /// Zero-sized probe used by macro-generated code to safely collect
 /// decorators from a type that may or may not implement
 /// [`HasSpytialDecorators`].
 pub struct DecoProbe<T>(
-    /// Marker for the probed type — the probe itself stores nothing.
+    /// Ties the probe to its type parameter `T`.
     pub ::std::marker::PhantomData<T>,
 );
 
