@@ -55,17 +55,13 @@ fn diagram_output_path() -> PathBuf {
     env::temp_dir().join(format!("spytial-{pid}-{counter}-{nanos}.html"))
 }
 
-/// Creates a diagram of the given data structure and opens it in the browser.
+/// Render `value` as an interactive diagram and open it in the browser.
 ///
-/// This function uses **compile-time decorator collection** to automatically include
-/// decorators from all nested types without requiring manual registration.
+/// Decorators are collected at compile time, so any nested type that derives
+/// [`SpytialDecorators`] contributes its own decorators with no manual
+/// registration.
 ///
-/// ## How it works:
-/// 1. **Compile-time analysis**: The `#[derive(SpytialDecorators)]` macro analyzes the type tree
-/// 2. **Automatic inclusion**: Decorators from nested types are automatically included
-/// 3. **Single call**: Just call `diagram(&your_struct)` - no registration needed
-///
-/// ## Example:
+/// # Example
 /// ```no_run
 /// use serde::Serialize;
 /// use spytial::{diagram, SpytialDecorators};
@@ -85,10 +81,10 @@ fn diagram_output_path() -> PathBuf {
 /// }
 ///
 /// let company = Company {
-///     name: "Acme Corp".to_string(),
+///     name: "Pemberley".to_string(),
 ///     employees: vec![Person {
-///         name: "Alice".to_string(),
-///         age: 30,
+///         name: "Elizabeth".to_string(),
+///         age: 20,
 ///     }],
 /// };
 /// diagram(&company);  // Shows decorators from both Company AND Person
@@ -98,26 +94,19 @@ pub fn diagram<T: spytial_annotations::HasSpytialDecorators + Serialize>(value: 
     diagram_impl(value, &spytial_spec);
 }
 
-/// Collect SpyTial specification using compile-time decorator collection.
+/// Collect the YAML SpyTial spec for `value` from its compile-time decorators.
 ///
-/// With the new compile-time system, calling `T::decorators()` returns decorators
-/// from the type itself AND all nested types that have decorators. This eliminates
-/// the need for complex runtime type discovery and registration.
+/// `T::decorators()` returns the decorators of `T` together with those of its
+/// nested types, so no runtime type registration is needed.
 fn collect_spytial_spec_for_diagram<T: spytial_annotations::HasSpytialDecorators + Serialize>(
     _value: &T,
 ) -> String {
-    // The magic happens here: T::decorators() includes ALL decorators
-    // from this type AND all nested decorated types (analyzed at compile time)
     let all_decorators = T::decorators();
-
-    // Serialize to YAML
     spytial_annotations::to_yaml(&all_decorators).unwrap_or_default()
 }
 
-/// Creates a diagram with a custom SpyTial specification (legacy function).
-///
-/// This allows you to provide a custom SpyTial specification instead of using
-/// the automatic compile-time decorator collection.
+/// Like [`diagram`], but renders `value` against a caller-supplied SpyTial spec
+/// instead of the decorators collected from the type.
 pub fn diagram_with_spec<T: Serialize>(value: &T, spec: &str) {
     diagram_impl(value, spec);
 }

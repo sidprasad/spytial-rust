@@ -20,15 +20,15 @@ struct Person {
 
 fn main() {
     let company = Company {
-        name: "Acme Corp".to_string(),
+        name: "Pemberley".to_string(),
         employees: vec![
             Person {
-                name: "Alice".to_string(),
-                age: 30,
+                name: "Elizabeth".to_string(),
+                age: 20,
             },
             Person {
-                name: "Bob".to_string(),
-                age: 25,
+                name: "Darcy".to_string(),
+                age: 28,
             },
         ],
     };

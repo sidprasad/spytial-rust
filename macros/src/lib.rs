@@ -4,8 +4,8 @@ use syn::{
     parse_macro_input, Attribute, Data, DeriveInput, Fields, GenericArgument, PathArguments, Type,
 };
 
-/// Collect decorators from field types at compile time
-/// This walks the type tree and generates calls to collect decorators from nested types
+/// Emit a decorator-probe call for each distinct user type reachable through
+/// this type's fields (looking through containers like `Vec`/`Option`/`Box`).
 fn collect_field_type_decorators(
     data: &Data,
     self_type_name: &str,
@@ -38,79 +38,46 @@ fn collect_field_type_decorators(
 /// Analyze a field type and generate decorator-collection calls for nested types.
 ///
 /// Containers (`Vec`, `Option`, `Box`, `Rc`, `Arc`, `RefCell`, `Cell`,
-/// `VecDeque`, `LinkedList`) are unwrapped to reach the inner type.
-/// Primitives and standard collections are skipped (they can never carry
-/// decorators).  Everything else gets a probe call via [`DecoProbe`] — if the
-/// type implements `HasSpytialDecorators` the real decorators are returned;
-/// otherwise the probe safely returns an empty set.
+/// `VecDeque`, `LinkedList`) are unwrapped recursively to reach the inner type
+/// (`Option<Box<T>>` → `T`). Primitives and standard collections are skipped
+/// (they can never carry decorators). Everything else gets a probe call via
+/// [`DecoProbe`] — if the type implements `HasSpytialDecorators` the real
+/// decorators are returned; otherwise the probe safely returns an empty set.
 fn analyze_field_type(
     ty: &Type,
     seen_types: &mut std::collections::HashSet<String>,
 ) -> Vec<proc_macro2::TokenStream> {
-    match ty {
-        Type::Path(type_path) => {
-            if let Some(segment) = type_path.path.segments.last() {
-                let name = segment.ident.to_string();
-                match name.as_str() {
-                    // Containers: unwrap to reach the inner type
-                    "Vec" | "Option" | "Box" | "Rc" | "Arc" | "RefCell" | "Cell" | "VecDeque"
-                    | "LinkedList" => {
-                        if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                            if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                                return analyze_inner_type(inner, seen_types);
-                            }
-                        }
-                    }
-                    // Primitives and std collections: can never have decorators
-                    "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
-                    | "u64" | "u128" | "usize" | "f32" | "f64" | "bool" | "char" | "String"
-                    | "str" | "Result" | "HashMap" | "HashSet" | "BTreeMap" | "BTreeSet" => {}
-                    // Everything else: safe to probe
-                    _ => {
-                        if !seen_types.contains(&name) {
-                            seen_types.insert(name.clone());
-                            return vec![generate_probe_call(&name)];
-                        }
-                    }
+    let Type::Path(type_path) = ty else {
+        return Vec::new();
+    };
+    let Some(segment) = type_path.path.segments.last() else {
+        return Vec::new();
+    };
+    let name = segment.ident.to_string();
+    match name.as_str() {
+        // Containers: unwrap to reach the inner type
+        "Vec" | "Option" | "Box" | "Rc" | "Arc" | "RefCell" | "Cell" | "VecDeque"
+        | "LinkedList" => {
+            if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                if let Some(GenericArgument::Type(inner)) = args.args.first() {
+                    return analyze_field_type(inner, seen_types);
                 }
             }
+            Vec::new()
         }
-        _ => {}
-    }
-    Vec::new()
-}
-
-/// Recursively unwrap container generics (`Option<Box<T>>` → `T`), then
-/// probe the inner type.
-fn analyze_inner_type(
-    ty: &Type,
-    seen_types: &mut std::collections::HashSet<String>,
-) -> Vec<proc_macro2::TokenStream> {
-    if let Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            let name = segment.ident.to_string();
-            match name.as_str() {
-                "Vec" | "Option" | "Box" | "Rc" | "Arc" | "RefCell" | "Cell" | "VecDeque"
-                | "LinkedList" => {
-                    if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                        if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                            return analyze_inner_type(inner, seen_types);
-                        }
-                    }
-                }
-                "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64"
-                | "u128" | "usize" | "f32" | "f64" | "bool" | "char" | "String" | "str"
-                | "Result" | "HashMap" | "HashSet" | "BTreeMap" | "BTreeSet" => {}
-                _ => {
-                    if !seen_types.contains(&name) {
-                        seen_types.insert(name.clone());
-                        return vec![generate_probe_call(&name)];
-                    }
-                }
+        // Primitives and std collections: can never have decorators
+        "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32" | "u64" | "u128"
+        | "usize" | "f32" | "f64" | "bool" | "char" | "String" | "str" | "Result" | "HashMap"
+        | "HashSet" | "BTreeMap" | "BTreeSet" => Vec::new(),
+        // Everything else: safe to probe
+        _ => {
+            if seen_types.insert(name.clone()) {
+                vec![generate_probe_call(&name)]
+            } else {
+                Vec::new()
             }
         }
     }
-    Vec::new()
 }
 
 /// Generate a probe call that safely collects decorators from `type_name`.
@@ -129,11 +96,9 @@ fn generate_probe_call(type_name: &str) -> proc_macro2::TokenStream {
     }
 }
 
-/// Derive macro for implementing HasSpytialDecorators trait
-///
-/// This macro analyzes all spatial annotation attributes on a struct
-/// and generates a single implementation of HasSpytialDecorators that includes
-/// all the annotations.
+/// Derive `HasSpytialDecorators`, turning a type's spatial-annotation attributes
+/// into a single `decorators()` impl that also pulls in the decorators of nested
+/// field types.
 ///
 /// # Supported Attributes
 /// - `#[attribute(field = "field_name")]` - Adds attribute directive
@@ -359,11 +324,11 @@ pub fn derive_spytial_decorators(input: TokenStream) -> TokenStream {
         }
     }
 
-    // Second, analyze field types and collect their decorators at compile time
-    // Only do this for structs - enums don't have fields to analyze
+    // Analyze field types and collect their decorators at compile time.
+    // Only structs have fields to walk; enums and unions contribute nothing.
     let field_type_decorators = match &input.data {
         Data::Struct(_) => collect_field_type_decorators(&input.data, &name.to_string()),
-        Data::Enum(_) | Data::Union(_) => Vec::new(), // Enums and unions just return empty decorators
+        Data::Enum(_) | Data::Union(_) => Vec::new(),
     };
 
     // Combine own decorators with field type decorators
@@ -560,7 +525,7 @@ fn validate_known_keys(
 
 fn parse_attribute_args(attr: &Attribute) -> Result<Option<SpatialAttribute>, syn::Error> {
     validate_known_keys(attr, "attribute", &["field"])?;
-    // Simple parsing - look for field = "value"
+    // Look for `field = "..."`; fall back to `name` when it's omitted.
     if let Ok(meta) = attr.meta.require_list() {
         let tokens = &meta.tokens;
         let token_str = tokens.to_string();
