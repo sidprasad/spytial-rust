@@ -696,3 +696,75 @@ fn hidden_atoms_are_reported_and_removed_from_the_graph() {
         ]),
     ));
 }
+
+// ──────────────────────────────────────────────
+// 9. Same-named records are one relation to a selector
+// ──────────────────────────────────────────────
+//
+// `Person.name` and `Company.name` are separate records — keyed by source
+// type, each with an exact header — and spytial-core 6.0 keeps records with
+// distinct ids apart rather than merging them by name. A selector still sees
+// one relation `name`: the union of every record carrying it. That union is
+// the property the split rests on, and it is the engine's to keep, so it is
+// pinned here against the engine rather than assumed from the datum's shape.
+// An engine that merged by name (as 5.x did) would pass this too, and one that
+// took only the first record of a name would fail the second query.
+
+#[derive(Serialize, SpytialDecorators)]
+struct Person {
+    name: String,
+}
+
+#[derive(Serialize, SpytialDecorators)]
+struct Company {
+    name: String,
+}
+
+#[derive(Serialize, SpytialDecorators)]
+#[orientation(selector = "name", directions = ["below"])]
+struct Directory {
+    p: Person,
+    c: Company,
+}
+
+#[test]
+fn a_selector_sees_the_union_of_same_named_records() {
+    if harness().is_none() {
+        return;
+    }
+
+    let dir = Directory {
+        p: Person { name: "Ada".into() },
+        c: Company {
+            name: "Acme".into(),
+        },
+    };
+    let datum = export_json_instance(&dir);
+    assert_eq!(
+        datum.relations.iter().filter(|r| r.name == "name").count(),
+        2,
+        "the datum carries two records named `name`"
+    );
+    let person = nth_of_type(&datum, "Person", 0);
+    let company = nth_of_type(&datum, "Company", 0);
+    let labelled = |label: &str| {
+        datum
+            .atoms
+            .iter()
+            .find(|a| a.label == label)
+            .map(|a| a.id.clone())
+            .unwrap_or_else(|| panic!("no atom labelled {label:?}"))
+    };
+    let (ada, acme) = (labelled("Ada"), labelled("Acme"));
+
+    assert_conforms(case(
+        "split records",
+        &dir,
+        json!([
+            { "query": format!("must.below({person})"), "contains": [&ada],
+              "because": "`name` selects Person.name's tuple" },
+            { "query": format!("must.below({company})"), "contains": [&acme],
+              "because": "`name` selects Company.name's tuple as well — the union of both records, not the first" },
+        ]),
+    ));
+}

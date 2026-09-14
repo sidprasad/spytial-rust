@@ -16,6 +16,10 @@
 //! Field names become relation names because a field names a role fixed at
 //! compile time; a map key stays an atom inside the tuple because it's runtime
 //! data. Enum variants follow the same rules, keyed on the variant's atom.
+//! A relation record is keyed by its source type as well as its name, and its
+//! `id` spells both (`Person.name`, `sequence.idx`); `name` stays bare, so
+//! `Person.name` and `Company.name` are separate records that a selector on
+//! `name` sees as one relation. See [`IRelation`](crate::jsondata::IRelation).
 //! Primitive values are identified by the value Serde exposes, so equal values
 //! of the same exposed type share an atom. Floats are the exception, and are
 //! identified by bit pattern instead: `==` is the wrong guide at both ends of
@@ -37,9 +41,12 @@ use std::fmt;
 
 /// Join an incoming tuple's position types into a relation's stored header.
 ///
-/// Relations are keyed by name in one flat namespace, so tuples from different
-/// source types can land in the same relation (two structs with a same-named
-/// field, or a field that shares its name with a built-in like `idx`). The
+/// Relations are keyed by source type and name, so a record's tuples normally
+/// agree on every position and the header is just the first tuple's types.
+/// The one way tuples still disagree is inside a single enum: its variants
+/// share one source type, so a tuple variant's ternary `idx` and a struct
+/// variant's binary field named `idx` land in the same record, as do a newtype
+/// variant's `variant_value` and a struct variant's field of that name. The
 /// header must describe all of them: positions on which every tuple agrees
 /// keep their concrete type, positions that vary widen to `"atom"`, the
 /// universal position type. When arities differ the common prefix is joined
@@ -59,19 +66,20 @@ fn join_position_types(header: &mut Vec<String>, incoming: &[String]) {
     }
 }
 
-/// Turn the serializer's relation map into the wire-format list.
+/// Turn the serializer's relation records into the wire-format list.
 ///
-/// Tuples are ordered longest-arity-first (stably, so serialization order is
-/// kept within an arity, and uniform-arity relations are untouched). The
-/// ordering dates from spytial-core 4.x, whose normalizer kept a relation's
-/// header only when its length matched the *first* tuple's arity. Since 5.2.1
-/// the normalizer accepts a mixed-arity relation directly and replaces its
-/// header with an empty one whatever the tuple order, so the ordering no
-/// longer decides the consumed signature; it stays because it is deterministic
-/// and free. Per-tuple `ITuple.types` are exact either way, and a
-/// uniform-arity relation's joined header is consumed as written.
-fn finalize_relations(relations: HashMap<String, IRelation>) -> Vec<IRelation> {
-    let mut relations: Vec<IRelation> = relations.into_values().collect();
+/// Records stay in first-seen order, so a relation appears where its source
+/// first serialized and the root's fields come before anything nested. Within
+/// a record, tuples are ordered longest-arity-first (stably, so serialization
+/// order is kept within an arity, and uniform-arity records are untouched).
+/// The ordering dates from spytial-core 4.x, whose normalizer kept a
+/// relation's header only when its length matched the *first* tuple's arity.
+/// Since 5.2.1 the normalizer accepts a mixed-arity relation directly and
+/// replaces its header with an empty one whatever the tuple order, so the
+/// ordering no longer decides the consumed signature; it stays because it is
+/// deterministic and free. Per-tuple `ITuple.types` are exact either way, and
+/// a uniform-arity record's header is consumed as written.
+fn finalize_relations(mut relations: Vec<IRelation>) -> Vec<IRelation> {
     for rel in &mut relations {
         rel.tuples.sort_by_key(|t| std::cmp::Reverse(t.atoms.len()));
     }
@@ -183,7 +191,10 @@ pub fn try_export_json_instance_with_decorators<T: Serialize>(
 pub(crate) struct JsonDataSerializer {
     counter: usize,
     atoms: Vec<IAtom>,
-    relations: HashMap<String, IRelation>,
+    /// Relation records in first-seen order; `relation_index` maps a record's
+    /// id to its position here.
+    relations: Vec<IRelation>,
+    relation_index: HashMap<String, usize>,
     collected_decorators: SpytialDecorators,
     visited_types: std::collections::HashSet<String>,
     exclude_type: Option<String>,
@@ -197,7 +208,8 @@ impl JsonDataSerializer {
         Self {
             counter: 0,
             atoms: vec![],
-            relations: HashMap::new(),
+            relations: Vec::new(),
+            relation_index: HashMap::new(),
             collected_decorators: SpytialDecorators::default(),
             visited_types: std::collections::HashSet::new(),
             exclude_type: None,
@@ -256,24 +268,35 @@ impl JsonDataSerializer {
         id
     }
 
+    /// Record one tuple of the relation `name` whose source is `types[0]`.
+    ///
+    /// Relations are keyed by source type and name, and the record's id spells
+    /// both as `"{source type}.{name}"`: `Person.name`, `sequence.idx`,
+    /// `newtype_struct.value`. `name` is the bare relation name and is what
+    /// selectors see. Since spytial-core 6.0 a name denotes the union of every
+    /// record carrying it while records with distinct ids are kept apart, so
+    /// each record keeps the exact position types of its own source instead of
+    /// one shared header widened to `"atom"`.
     fn push_relation(&mut self, name: &str, atoms: Vec<String>, types: Vec<&str>) {
         let types: Vec<String> = types.iter().map(|s| s.to_string()).collect();
+        let id = format!("{}.{}", types[0], name);
         let tuple = ITuple {
             atoms,
             types: types.clone(),
         };
 
-        match self.relations.entry(name.to_string()) {
+        match self.relation_index.entry(id) {
             Entry::Vacant(entry) => {
-                entry.insert(IRelation {
-                    id: name.to_string(),
+                self.relations.push(IRelation {
+                    id: entry.key().clone(),
                     name: name.to_string(),
                     types,
                     tuples: vec![tuple],
                 });
+                entry.insert(self.relations.len() - 1);
             }
-            Entry::Occupied(mut entry) => {
-                let rel = entry.get_mut();
+            Entry::Occupied(entry) => {
+                let rel = &mut self.relations[*entry.get()];
                 join_position_types(&mut rel.types, &tuple.types);
                 rel.tuples.push(tuple);
             }

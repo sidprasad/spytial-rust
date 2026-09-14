@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   merges records by `id` and never by `name`, and a selector on a name sees the
   union of every record carrying it.
 
+- Changed: a relation record is keyed by source type as well as by name, and
+  its `id` spells both as `"{source type}.{name}"` — `Person.name`,
+  `sequence.idx`, `newtype_struct.value` — while `name` stays bare. Two structs
+  with a same-named field now give two records with exact headers,
+  `name(Person, atom)` and `name(Company, atom)`, where before 6.0 they had to
+  share one record whose header widened to `name(atom, atom)` (#79). A field
+  named like a built-in (`idx`, `value`) no longer shares a record with it, so
+  those records are no longer mixed-arity. Selectors are unaffected, since they
+  match on `name`; so is `from_datum`, which already bucketed tuples by source
+  atom and relation name. Anyone reading `IRelation.id` sees new values, and a
+  name may now map to several records. Records are emitted in first-seen order
+  rather than hash order. One mixed-arity record remains: an enum's variants
+  all have the enum as source type, so a tuple variant's ternary `idx` and a
+  struct variant's field named `idx` still share `E.idx`, whose header widens
+  and keeps the longest arity as before.
+
 - Added: `from_datum` and `replit` now reconstruct values written through
   serde's self-describing representations. `#[serde(flatten)]`,
   `#[serde(untagged)]`, and the internally and adjacently tagged enum forms all

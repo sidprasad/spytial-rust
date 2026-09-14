@@ -10,10 +10,11 @@
 //! # Shape variety, not just value variety
 //!
 //! Nesting alone would exercise one struct shape over and over. Export's
-//! subtler behaviour lives in *shape* rather than in values: relation names
-//! share one flat namespace, so a field name can collide with another type's
-//! field or with a built-in like `idx`, and a relation's position types widen
-//! when its tuples disagree. So the generator also varies field counts (zero,
+//! subtler behaviour lives in *shape* rather than in values: relation records
+//! are keyed by source type and name, so a field name shared with another
+//! type or with a built-in like `idx` splits into records of one name, and an
+//! enum's variants can still mix arities in one record. So the generator also
+//! varies field counts (zero,
 //! one, two, three), tuple arities (one, two, three), field names that shadow
 //! every built-in relation ([`Shadowed`]), and one value carrying two
 //! different types that share a field name ([`Nest::Collide`]).
@@ -86,11 +87,11 @@ pub struct Rec3 {
 
 /// Every field named after one of export's built-in relations.
 ///
-/// Relation names live in one flat namespace, so a field called `idx` lands in
-/// the same relation as a sequence's positions and mixes arities there, and a
-/// field called `value` or `variant_value` competes with the relations a
-/// newtype struct and an enum variant emit. Reconstruction has to bucket by
-/// source atom rather than trust the name.
+/// A field called `idx` is a record of the same *name* as a sequence's
+/// positions (`Shadowed.idx` beside `sequence.idx`), and a field called
+/// `value` or `variant_value` shares its name with the relations a newtype
+/// struct and an enum variant emit. Reconstruction has to bucket by source
+/// atom rather than trust the name.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Shadowed {
     /// Shares a name with a sequence's position relation.
@@ -189,9 +190,9 @@ pub enum Nest {
     Fields3(Rec3),
     /// `struct` whose every field name shadows a built-in relation.
     Shadow(Shadowed),
-    /// Two different types carrying the same field name, in one value. The
-    /// flat relation namespace merges them into a single relation whose
-    /// position types widen, so this is the shape that exercises that merge.
+    /// Two different types carrying the same field name, in one value. They
+    /// are separate records of one name (`NameA.x`, `NameB.x`), so this is
+    /// the shape that exercises the split.
     Collide(NameA, NameB),
     /// `tuple` of one, so tuple arity is not always two.
     Tup1((Box<Nest>,)),
