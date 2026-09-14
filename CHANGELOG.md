@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed: vendored spytial-core 5.4.1 → 6.0.0, via
+  `scripts/update-spytial-core.sh 6.0.0`. The layout-spec language has not
+  moved (still 2026-08-25), so the derive's regenerated spec tables differ only
+  in the version they cite, and the conformance harness's `RunResult` is still
+  format 1. What 6.0 changes is how the engine reads a datum's relations: it
+  merges records by `id` and never by `name`, and a selector on a name sees the
+  union of every record carrying it.
+
 - Added: `from_datum` and `replit` now reconstruct values written through
   serde's self-describing representations. `#[serde(flatten)]`,
   `#[serde(untagged)]`, and the internally and adjacently tagged enum forms all
