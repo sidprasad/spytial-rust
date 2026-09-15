@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed: a relation record is keyed by source type as well as by name, and
   its `id` spells both as `"{source type}.{name}"` — `Person.name`,
-  `sequence.idx`, `newtype_struct.value` — while `name` stays bare. Two structs
+  `sequence.idx`, `newtype_struct.value` — while `name` stays bare (a `.` or
+  `\` inside either part is backslash-escaped, so a `#[serde(rename)]` with a
+  dot in it cannot make two pairs share an id). Two structs
   with a same-named field now give two records with exact headers,
   `name(Person, atom)` and `name(Company, atom)`, where before 6.0 they had to
   share one record whose header widened to `name(atom, atom)` (#79). A field

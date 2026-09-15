@@ -66,6 +66,30 @@ fn join_position_types(header: &mut Vec<String>, incoming: &[String]) {
     }
 }
 
+/// The wire id of the record for relation `name` from source type `source`:
+/// the two joined with a `.`, with any `.` or `\` inside either component
+/// escaped by a backslash. Rust identifiers contain neither, so the escape
+/// only ever fires for a `#[serde(rename = "...")]` that does — and then it
+/// has to, because the id is the key spytial-core merges records on. Without
+/// it a type `A.B` with a field `c` and a type `A` with a field `B.c` would
+/// both be `A.B.c`, and the second's tuples would be filed under the first's
+/// name.
+fn relation_id(source: &str, name: &str) -> String {
+    fn escape(component: &str, out: &mut String) {
+        for ch in component.chars() {
+            if ch == '.' || ch == '\\' {
+                out.push('\\');
+            }
+            out.push(ch);
+        }
+    }
+    let mut id = String::with_capacity(source.len() + name.len() + 1);
+    escape(source, &mut id);
+    id.push('.');
+    escape(name, &mut id);
+    id
+}
+
 /// Turn the serializer's relation records into the wire-format list.
 ///
 /// Records stay in first-seen order, so a relation appears where its source
@@ -192,9 +216,10 @@ pub(crate) struct JsonDataSerializer {
     counter: usize,
     atoms: Vec<IAtom>,
     /// Relation records in first-seen order; `relation_index` maps a record's
-    /// id to its position here.
+    /// (source type, name) to its position here. The pair is the key, not the
+    /// id string, so two pairs can never share a record.
     relations: Vec<IRelation>,
-    relation_index: HashMap<String, usize>,
+    relation_index: HashMap<(String, String), usize>,
     collected_decorators: SpytialDecorators,
     visited_types: std::collections::HashSet<String>,
     exclude_type: Option<String>,
@@ -271,25 +296,26 @@ impl JsonDataSerializer {
     /// Record one tuple of the relation `name` whose source is `types[0]`.
     ///
     /// Relations are keyed by source type and name, and the record's id spells
-    /// both as `"{source type}.{name}"`: `Person.name`, `sequence.idx`,
-    /// `newtype_struct.value`. `name` is the bare relation name and is what
-    /// selectors see. Since spytial-core 6.0 a name denotes the union of every
-    /// record carrying it while records with distinct ids are kept apart, so
-    /// each record keeps the exact position types of its own source instead of
-    /// one shared header widened to `"atom"`.
+    /// both as `"{source type}.{name}"` (see [`relation_id`]): `Person.name`,
+    /// `sequence.idx`, `newtype_struct.value`. `name` is the bare relation name
+    /// and is what selectors see. Since spytial-core 6.0 a name denotes the
+    /// union of every record carrying it while records with distinct ids are
+    /// kept apart, so each record keeps the exact position types of its own
+    /// source instead of one shared header widened to `"atom"`.
     fn push_relation(&mut self, name: &str, atoms: Vec<String>, types: Vec<&str>) {
         let types: Vec<String> = types.iter().map(|s| s.to_string()).collect();
-        let id = format!("{}.{}", types[0], name);
+        let key = (types[0].clone(), name.to_string());
         let tuple = ITuple {
             atoms,
             types: types.clone(),
         };
 
-        match self.relation_index.entry(id) {
+        match self.relation_index.entry(key) {
             Entry::Vacant(entry) => {
+                let (source, name) = entry.key();
                 self.relations.push(IRelation {
-                    id: entry.key().clone(),
-                    name: name.to_string(),
+                    id: relation_id(source, name),
+                    name: name.clone(),
                     types,
                     tuples: vec![tuple],
                 });

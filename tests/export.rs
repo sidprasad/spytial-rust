@@ -1104,6 +1104,52 @@ fn field_named_like_a_builtin_gets_its_own_record() {
     assert_eq!(relations_named(&inst, "value").len(), 2);
 }
 
+// A `#[serde(rename)]` can put a dot in a type or field name. The id must
+// still be unique to the (source type, name) pair, because spytial-core
+// merges records by id: with a bare join, type `A.B` + field `c` and type
+// `A` + field `B.c` would both be `A.B.c`, and the second's tuples would be
+// filed under the first's name.
+
+#[derive(Serialize)]
+#[serde(rename = "A.B")]
+struct DottedType {
+    c: u8,
+}
+
+#[derive(Serialize)]
+#[serde(rename = "A")]
+struct DottedField {
+    #[serde(rename = "B.c")]
+    b_c: u8,
+}
+
+#[derive(Serialize)]
+struct DotCollision {
+    x: DottedType,
+    y: DottedField,
+}
+
+#[test]
+fn dots_in_serde_names_do_not_collide_record_ids() {
+    let inst = export_json_instance(&DotCollision {
+        x: DottedType { c: 1 },
+        y: DottedField { b_c: 2 },
+    });
+
+    let c = relation_by_id(&inst, r"A\.B.c");
+    let bc = relation_by_id(&inst, r"A.B\.c");
+    assert_eq!(c.name, "c");
+    assert_eq!(c.types, vec!["A.B", "atom"]);
+    assert_eq!(c.tuples.len(), 1);
+    assert_eq!(bc.name, "B.c");
+    assert_eq!(bc.types, vec!["A", "atom"]);
+    assert_eq!(bc.tuples.len(), 1);
+
+    let ids: std::collections::HashSet<&str> =
+        inst.relations.iter().map(|r| r.id.as_str()).collect();
+    assert_eq!(ids.len(), inst.relations.len(), "every record id is unique");
+}
+
 // The one mixed-arity record left. An enum's variants all have the enum as
 // their source type, so a tuple variant's ternary `idx` and a struct variant's
 // binary field named `idx` land in one record, `Payload.idx`. Its header joins

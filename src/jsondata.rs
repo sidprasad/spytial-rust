@@ -95,7 +95,11 @@ pub struct ITuple {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IRelation {
     /// Stable identifier for the record: `"{source type}.{name}"`, so
-    /// `Person.name` and `Company.name` are distinct records of one name.
+    /// `Person.name` and `Company.name` are distinct records of one name. A
+    /// `.` or `\` inside either component is escaped with a backslash, so the
+    /// id is unique to the pair even when a `#[serde(rename)]` puts a dot in a
+    /// name: type `A.B` with field `c` is `A\.B.c`, type `A` with field `B.c`
+    /// is `A.B\.c`.
     pub id: String,
     /// Relation name — `"idx"`, `"map_entry"`, or a struct field name. What a
     /// selector matches; shared by every record of that name.

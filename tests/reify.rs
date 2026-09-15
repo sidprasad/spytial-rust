@@ -276,6 +276,31 @@ fn colliding_relation_names_round_trip() {
         Named { idx: u32 },
     }
     full_roundtrip(vec![Payload::Named { idx: 9 }, Payload::Positional(10, 11)]);
+
+    // Dots from `#[serde(rename)]` must not make two (source type, name)
+    // pairs share a record: type `A.B` + field `c` and type `A` + field `B.c`
+    // would both be id `A.B.c` without escaping, and the second's tuples would
+    // be filed under the first's name, where `from_datum` cannot find them.
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename = "A.B")]
+    struct DottedType {
+        c: u8,
+    }
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename = "A")]
+    struct DottedField {
+        #[serde(rename = "B.c")]
+        b_c: u8,
+    }
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct DotCollision {
+        x: DottedType,
+        y: DottedField,
+    }
+    full_roundtrip(DotCollision {
+        x: DottedType { c: 1 },
+        y: DottedField { b_c: 2 },
+    });
 }
 
 #[test]
