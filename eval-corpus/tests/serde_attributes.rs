@@ -112,10 +112,11 @@ struct Optional {
 
 // ── field names that shadow export's built-in relations ──────────────────
 
-/// A struct field named after a built-in relation. Relation names live in one
-/// flat namespace, so `idx` here lands in the same relation as a sequence's
-/// positions, and `value` / `variant_value` in the same ones a newtype struct
-/// and an enum variant use. Reaching these through a self-describing
+/// A struct field named after a built-in relation. Records are keyed by source
+/// type, so `idx` here is its own record (`FieldIdx.idx`), but it shares a
+/// *name* with a sequence's positions, as `value` / `variant_value` do with
+/// the relations a newtype struct and an enum variant use. Reaching these
+/// through a self-describing
 /// representation is what makes them interesting: `deserialize_any` has only
 /// the atom to go on, so it must not read a field name as a payload marker.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]

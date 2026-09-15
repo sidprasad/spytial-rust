@@ -211,11 +211,14 @@ fn nested_options_round_trip() {
 
 #[test]
 fn colliding_relation_names_round_trip() {
-    // Relations are keyed by name in one flat namespace, so same-named edges
-    // from different types share a relation whose header is widened position-
-    // wise (issue #79). Reify buckets tuples by source atom, so round-trips
-    // must be unaffected — even for a field named like a built-in relation of
-    // different arity (`idx`), which produces a mixed-arity relation.
+    // Relations are keyed by source type and name, so same-named edges from
+    // different types are separate records of one name (`Person.name`,
+    // `Company.name`; issue #79, split since spytial-core 6.0). Reify buckets
+    // tuples by source atom and relation name, so round-trips must be
+    // unaffected — including a field named like a built-in relation of
+    // different arity (`idx`), which now gets its own record beside
+    // `sequence.idx`, and an enum whose variants share the enum as source
+    // type, which is the one place a record still mixes arities.
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct Person {
@@ -265,6 +268,38 @@ fn colliding_relation_names_round_trip() {
     full_roundtrip(ValueCollision {
         a: HasValue { value: 7 },
         b: Meters(1.5),
+    });
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    enum Payload {
+        Positional(u32, u32),
+        Named { idx: u32 },
+    }
+    full_roundtrip(vec![Payload::Named { idx: 9 }, Payload::Positional(10, 11)]);
+
+    // Dots from `#[serde(rename)]` must not make two (source type, name)
+    // pairs share a record: type `A.B` + field `c` and type `A` + field `B.c`
+    // would both be id `A.B.c` without escaping, and the second's tuples would
+    // be filed under the first's name, where `from_datum` cannot find them.
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename = "A.B")]
+    struct DottedType {
+        c: u8,
+    }
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename = "A")]
+    struct DottedField {
+        #[serde(rename = "B.c")]
+        b_c: u8,
+    }
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct DotCollision {
+        x: DottedType,
+        y: DottedField,
+    }
+    full_roundtrip(DotCollision {
+        x: DottedType { c: 1 },
+        y: DottedField { b_c: 2 },
     });
 }
 

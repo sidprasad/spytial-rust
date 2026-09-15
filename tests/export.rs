@@ -14,15 +14,46 @@ use spytial::SpytialDecorators;
 // Helpers
 // ──────────────────────────────────────────────
 
-/// Find a relation by name, panicking if absent.
-fn relation<'a>(instance: &'a JsonDataInstance, name: &str) -> &'a IRelation {
+/// Every record of a relation name, in datum order. A name has one record per
+/// source type, so this is more than one exactly when types share a name.
+fn relations_named<'a>(instance: &'a JsonDataInstance, name: &str) -> Vec<&'a IRelation> {
     instance
         .relations
         .iter()
-        .find(|r| r.name == name)
-        .unwrap_or_else(|| {
+        .filter(|r| r.name == name)
+        .collect()
+}
+
+/// Find the single record of a relation name, panicking if absent — or if the
+/// name is split across several records, which must be looked up by id.
+fn relation<'a>(instance: &'a JsonDataInstance, name: &str) -> &'a IRelation {
+    match relations_named(instance, name).as_slice() {
+        [one] => one,
+        [] => {
             let names: Vec<&str> = instance.relations.iter().map(|r| r.name.as_str()).collect();
             panic!("no relation named {:?}; available: {:?}", name, names)
+        }
+        many => {
+            let ids: Vec<&str> = many.iter().map(|r| r.id.as_str()).collect();
+            panic!(
+                "relation {:?} has {} records {:?}; look one up by id",
+                name,
+                many.len(),
+                ids
+            )
+        }
+    }
+}
+
+/// Find a relation record by id (`"{source type}.{name}"`), panicking if absent.
+fn relation_by_id<'a>(instance: &'a JsonDataInstance, id: &str) -> &'a IRelation {
+    instance
+        .relations
+        .iter()
+        .find(|r| r.id == id)
+        .unwrap_or_else(|| {
+            let ids: Vec<&str> = instance.relations.iter().map(|r| r.id.as_str()).collect();
+            panic!("no relation with id {:?}; available: {:?}", id, ids)
         })
 }
 
@@ -187,12 +218,26 @@ fn every_idx_position_is_a_declared_serde_value() {
         tuple_variant: PositionalVariant::Values(40, 41),
     });
 
-    let idx = relation(&inst, "idx");
-    assert_eq!(idx.tuples.len(), 8, "all four positional emitters ran");
+    // One `idx` record per positional emitter, since each has its own source
+    // type; the position rule below holds across all of them.
+    let idx = relations_named(&inst, "idx");
+    let mut ids: Vec<&str> = idx.iter().map(|r| r.id.as_str()).collect();
+    ids.sort();
+    assert_eq!(
+        ids,
+        vec![
+            "PositionalVariant.idx",
+            "sequence.idx",
+            "tuple.idx",
+            "tuple_struct.idx"
+        ]
+    );
+    let idx_tuples: Vec<_> = idx.iter().flat_map(|r| r.tuples.iter()).collect();
+    assert_eq!(idx_tuples.len(), 8, "all four positional emitters ran");
 
     let declared: std::collections::HashSet<&str> =
         inst.atoms.iter().map(|atom| atom.id.as_str()).collect();
-    for tuple in &idx.tuples {
+    for tuple in &idx_tuples {
         assert!(tuple.atoms.iter().all(|id| declared.contains(id.as_str())));
         assert_eq!(atom_by_id(&inst, &tuple.atoms[1]).r#type, "u64");
     }
@@ -203,7 +248,7 @@ fn every_idx_position_is_a_declared_serde_value() {
     assert!(positions.iter().any(|atom| atom.label == "1"));
     assert_eq!(
         relation(&inst, "ordinary_zero").tuples[0].atoms[1],
-        idx.tuples
+        idx_tuples
             .iter()
             .map(|tuple| &tuple.atoms[1])
             .find(|id| atom_by_id(&inst, id).label == "0")
@@ -808,8 +853,16 @@ fn data_instance_and_decorators_agree_on_types() {
 }
 
 // ──────────────────────────────────────────────
-// 19. Same-named relations across types join their header (issue #79)
+// 19. Same-named relations split by source type (issue #79, spytial-core 6.0)
 // ──────────────────────────────────────────────
+//
+// A relation record is keyed by source type and name, and its id spells both:
+// `Person.name`. spytial-core 6.0 merges records by id and never by name, and
+// a selector on a name sees the union of every record carrying it, so two
+// structs with a same-named field give two records with exact headers rather
+// than one record widened to `atom`. (Before 6.0 the engine merged by name,
+// which is why the header used to widen; tests/conformance.rs pins the union
+// against the engine itself.)
 
 #[derive(Serialize)]
 struct Person {
@@ -834,7 +887,7 @@ struct BothNamesReversed {
 }
 
 #[test]
-fn same_named_field_across_types_widens_relation_header() {
+fn same_named_field_across_types_splits_into_typed_records() {
     let inst = export_json_instance(&BothNames {
         p: Person { name: "Ada".into() },
         c: Company {
@@ -842,28 +895,30 @@ fn same_named_field_across_types_widens_relation_header() {
         },
     });
 
-    let rel = relation(&inst, "name");
-    assert_eq!(rel.tuples.len(), 2);
+    let person = relation_by_id(&inst, "Person.name");
+    let company = relation_by_id(&inst, "Company.name");
+    assert_eq!(relations_named(&inst, "name").len(), 2);
 
-    // The header describes both source types only by widening to "atom".
-    assert_eq!(rel.types, vec!["atom", "atom"]);
+    // Both records carry the bare name a selector matches, and each keeps the
+    // exact header of its own source instead of a shared one widened to atom.
+    assert_eq!(person.name, "name");
+    assert_eq!(company.name, "name");
+    assert_eq!(person.types, vec!["Person", "atom"]);
+    assert_eq!(company.types, vec!["Company", "atom"]);
 
-    // Per-tuple types stay exact.
-    let person_id = &atom_by_type(&inst, "Person").id;
-    let company_id = &atom_by_type(&inst, "Company").id;
-    for tuple in &rel.tuples {
-        let expected = if &tuple.atoms[0] == person_id {
-            vec!["Person", "atom"]
-        } else {
-            assert_eq!(&tuple.atoms[0], company_id);
-            vec!["Company", "atom"]
-        };
-        assert_eq!(tuple.types, expected);
-    }
+    assert_eq!(person.tuples.len(), 1);
+    assert_eq!(company.tuples.len(), 1);
+    assert_eq!(person.tuples[0].atoms[0], atom_by_type(&inst, "Person").id);
+    assert_eq!(
+        company.tuples[0].atoms[0],
+        atom_by_type(&inst, "Company").id
+    );
+    assert_eq!(person.tuples[0].types, vec!["Person", "atom"]);
+    assert_eq!(company.tuples[0].types, vec!["Company", "atom"]);
 }
 
 #[test]
-fn joined_header_is_independent_of_tuple_order() {
+fn records_are_independent_of_serialization_order() {
     let forward = export_json_instance(&BothNames {
         p: Person { name: "Ada".into() },
         c: Company {
@@ -877,50 +932,136 @@ fn joined_header_is_independent_of_tuple_order() {
         p: Person { name: "Ada".into() },
     });
 
+    // The roots are different types, so only the split `name` records are
+    // comparable — and they must not depend on which source serialized first.
+    let summary = |inst: &JsonDataInstance| {
+        let mut v: Vec<(String, Vec<String>, usize)> = relations_named(inst, "name")
+            .iter()
+            .map(|r| (r.id.clone(), r.types.clone(), r.tuples.len()))
+            .collect();
+        v.sort();
+        v
+    };
+    assert_eq!(summary(&forward), summary(&reversed));
+    assert_eq!(summary(&forward).len(), 2);
+}
+
+#[test]
+fn records_are_emitted_in_first_seen_order() {
+    let inst = export_json_instance(&BothNames {
+        p: Person { name: "Ada".into() },
+        c: Company {
+            name: "Acme".into(),
+        },
+    });
+    let ids: Vec<&str> = inst.relations.iter().map(|r| r.id.as_str()).collect();
+    // The root's `p` is serialized first, then Person's `name`, then `c`, then
+    // Company's `name` — a relation appears where its source first serialized.
     assert_eq!(
-        relation(&forward, "name").types,
-        relation(&reversed, "name").types
+        ids,
+        vec!["Person.name", "BothNames.p", "Company.name", "BothNames.c"]
     );
 }
 
 #[test]
-fn single_source_type_keeps_precise_header() {
+fn single_source_type_record_is_exact() {
     let inst = export_json_instance(&Flat {
         name: "solo".into(),
         age: 1,
     });
 
-    assert_eq!(relation(&inst, "name").types, vec!["Flat", "atom"]);
+    let name = relation(&inst, "name");
+    assert_eq!(name.id, "Flat.name");
+    assert_eq!(name.types, vec!["Flat", "atom"]);
+    assert_eq!(relation(&inst, "age").id, "Flat.age");
     assert_eq!(relation(&inst, "age").types, vec!["Flat", "atom"]);
 }
 
-// A user field named like the built-in `value` relation (same arity):
-// the shared header widens, nothing else changes.
+// Every record, built-in or field, is keyed the same way: its id is its
+// source type and its name, and every one of its tuples has that source type.
+
+#[derive(Serialize)]
+enum Shape {
+    Unit,
+    Newtype(u8),
+    Tuple(u8, u8),
+    Named { w: u8 },
+}
 
 #[derive(Serialize)]
 struct Meters(f64);
 
 #[derive(Serialize)]
-struct ValueCollision {
-    a: Inner,  // field relation value(Inner, atom)
-    b: Meters, // newtype relation value(newtype_struct, atom)
+struct Kitchen {
+    xs: Vec<u8>,
+    pair: (u8, bool),
+    m: std::collections::BTreeMap<String, u8>,
+    o: Option<Option<u8>>,
+    d: Meters,
+    shapes: Vec<Shape>,
 }
 
 #[test]
-fn field_colliding_with_builtin_value_relation_widens_header() {
-    let inst = export_json_instance(&ValueCollision {
-        a: Inner { value: 7 },
-        b: Meters(1.5),
+fn every_record_id_spells_its_source_type_and_name() {
+    let inst = export_json_instance(&Kitchen {
+        xs: vec![1, 2],
+        pair: (3, true),
+        m: [("k".to_string(), 4)].into_iter().collect(),
+        // `Some(None)` is the one shape that keeps a `Some` wrapper atom.
+        o: Some(None),
+        d: Meters(1.5),
+        shapes: vec![
+            Shape::Unit,
+            Shape::Newtype(5),
+            Shape::Tuple(6, 7),
+            Shape::Named { w: 8 },
+        ],
     });
 
-    let rel = relation(&inst, "value");
-    assert_eq!(rel.tuples.len(), 2);
-    assert_eq!(rel.types, vec!["atom", "atom"]);
+    let mut seen = std::collections::HashSet::new();
+    for rel in &inst.relations {
+        assert_eq!(
+            rel.id,
+            format!("{}.{}", rel.types[0], rel.name),
+            "record {:?}: id must be its source type and name",
+            rel.id
+        );
+        assert!(
+            seen.insert(rel.id.as_str()),
+            "duplicate record id {:?}",
+            rel.id
+        );
+        for tuple in &rel.tuples {
+            assert_eq!(
+                tuple.types[0], rel.types[0],
+                "record {:?}: every tuple shares the record's source type",
+                rel.id
+            );
+            assert_eq!(atom_by_id(&inst, &tuple.atoms[0]).r#type, rel.types[0]);
+        }
+    }
+
+    // Fields and built-ins alike, from each emitter.
+    for id in [
+        "Kitchen.xs",
+        "sequence.idx",
+        "tuple.idx",
+        "map.map_entry",
+        "Some.value",
+        "newtype_struct.value",
+        "Shape.variant_value",
+        "Shape.idx",
+        "Shape.w",
+    ] {
+        relation_by_id(&inst, id);
+    }
+    // `xs` and `shapes` are both sequences, so their positions share a record.
+    assert_eq!(relation_by_id(&inst, "sequence.idx").tuples.len(), 2 + 4);
 }
 
-// A user field named like the built-in `idx` relation (different arity):
-// the header joins the common prefix and keeps the longest arity, and
-// per-tuple types/arity remain exact for every tuple.
+// A user field named like a built-in relation no longer shares a record with
+// it: the sources differ, so the ids do, and neither header is widened or
+// mixed-arity.
 
 #[derive(Serialize)]
 struct HasIdx {
@@ -928,54 +1069,143 @@ struct HasIdx {
 }
 
 #[derive(Serialize)]
-struct MixedArity {
-    a: HasIdx,
-    b: Vec<u32>,
-}
-
-#[derive(Serialize)]
-struct MixedArityReversed {
-    b: Vec<u32>,
-    a: HasIdx,
+struct FieldShadowsBuiltins {
+    a: HasIdx,   // field record HasIdx.idx, binary
+    b: Vec<u32>, // built-in record sequence.idx, ternary
+    c: Inner,    // field record Inner.value
+    d: Meters,   // built-in record newtype_struct.value
 }
 
 #[test]
-fn field_colliding_with_different_arity_builtin_keeps_longest_header() {
-    let inst = export_json_instance(&MixedArity {
+fn field_named_like_a_builtin_gets_its_own_record() {
+    let inst = export_json_instance(&FieldShadowsBuiltins {
         a: HasIdx { idx: 9 },
         b: vec![10, 11],
+        c: Inner { value: 7 },
+        d: Meters(1.5),
     });
 
-    let rel = relation(&inst, "idx");
+    let field_idx = relation_by_id(&inst, "HasIdx.idx");
+    let seq_idx = relation_by_id(&inst, "sequence.idx");
+    assert_eq!(field_idx.types, vec!["HasIdx", "atom"]);
+    assert_eq!(field_idx.tuples.len(), 1);
+    assert_eq!(seq_idx.types, vec!["sequence", "u64", "atom"]);
+    assert_eq!(seq_idx.tuples.len(), 2);
+    assert_eq!(relations_named(&inst, "idx").len(), 2);
+
+    assert_eq!(
+        relation_by_id(&inst, "Inner.value").types,
+        vec!["Inner", "atom"]
+    );
+    assert_eq!(
+        relation_by_id(&inst, "newtype_struct.value").types,
+        vec!["newtype_struct", "atom"]
+    );
+    assert_eq!(relations_named(&inst, "value").len(), 2);
+}
+
+// A `#[serde(rename)]` can put a dot in a type or field name. The id must
+// still be unique to the (source type, name) pair, because spytial-core
+// merges records by id: with a bare join, type `A.B` + field `c` and type
+// `A` + field `B.c` would both be `A.B.c`, and the second's tuples would be
+// filed under the first's name.
+
+#[derive(Serialize)]
+#[serde(rename = "A.B")]
+struct DottedType {
+    c: u8,
+}
+
+#[derive(Serialize)]
+#[serde(rename = "A")]
+struct DottedField {
+    #[serde(rename = "B.c")]
+    b_c: u8,
+}
+
+#[derive(Serialize)]
+struct DotCollision {
+    x: DottedType,
+    y: DottedField,
+}
+
+#[test]
+fn dots_in_serde_names_do_not_collide_record_ids() {
+    let inst = export_json_instance(&DotCollision {
+        x: DottedType { c: 1 },
+        y: DottedField { b_c: 2 },
+    });
+
+    let c = relation_by_id(&inst, r"A\.B.c");
+    let bc = relation_by_id(&inst, r"A.B\.c");
+    assert_eq!(c.name, "c");
+    assert_eq!(c.types, vec!["A.B", "atom"]);
+    assert_eq!(c.tuples.len(), 1);
+    assert_eq!(bc.name, "B.c");
+    assert_eq!(bc.types, vec!["A", "atom"]);
+    assert_eq!(bc.tuples.len(), 1);
+
+    let ids: std::collections::HashSet<&str> =
+        inst.relations.iter().map(|r| r.id.as_str()).collect();
+    assert_eq!(ids.len(), inst.relations.len(), "every record id is unique");
+}
+
+// The one mixed-arity record left. An enum's variants all have the enum as
+// their source type, so a tuple variant's ternary `idx` and a struct variant's
+// binary field named `idx` land in one record, `Payload.idx`. Its header joins
+// the common prefix and keeps the longest arity, and every tuple stays exact.
+
+#[derive(Serialize)]
+enum Payload {
+    Positional(u32, u32),
+    Named { idx: u32 },
+}
+
+#[derive(Serialize)]
+struct MixedArity {
+    a: Payload,
+    b: Payload,
+}
+
+#[test]
+fn enum_variants_sharing_a_relation_name_keep_one_ragged_record() {
+    let inst = export_json_instance(&MixedArity {
+        a: Payload::Named { idx: 9 },
+        b: Payload::Positional(10, 11),
+    });
+
+    assert_eq!(relations_named(&inst, "idx").len(), 1);
+    let rel = relation_by_id(&inst, "Payload.idx");
     assert_eq!(rel.tuples.len(), 3);
-    assert_eq!(rel.types, vec!["atom", "atom", "atom"]);
+    // Position 0 is the enum in every tuple; the rest disagree and widen.
+    assert_eq!(rel.types, vec!["Payload", "atom", "atom"]);
 
     let field_tuples: Vec<_> = rel.tuples.iter().filter(|t| t.atoms.len() == 2).collect();
     let seq_tuples: Vec<_> = rel.tuples.iter().filter(|t| t.atoms.len() == 3).collect();
     assert_eq!(field_tuples.len(), 1);
     assert_eq!(seq_tuples.len(), 2);
-    assert_eq!(field_tuples[0].types, vec!["HasIdx", "atom"]);
+    assert_eq!(field_tuples[0].types, vec!["Payload", "atom"]);
     for tuple in seq_tuples {
-        assert_eq!(tuple.types, vec!["sequence", "u64", "atom"]);
+        assert_eq!(tuple.types, vec!["Payload", "u64", "atom"]);
     }
 }
 
 #[test]
-fn mixed_arity_relation_orders_longest_tuples_first() {
+fn ragged_record_orders_longest_tuples_first() {
     // The ordering was introduced for spytial-core 4.x, whose normalizer kept a
     // relation header only when its length equaled the *first* tuple's arity.
-    // Since 5.2.1 a mixed-arity relation's header is replaced with an empty
-    // one whatever the order, so the engine no longer depends on this — but
-    // the emitted datum is still a contract of its own: the header describes
-    // the longest tuple, a longest tuple comes first, and neither depends on
-    // which side of the collision serialized first.
+    // Since 5.2.1 a mixed-arity record's header is replaced with an empty one
+    // whatever the order, so the engine no longer depends on this — but the
+    // emitted datum is still a contract of its own: the header describes the
+    // longest tuple, a longest tuple comes first, and neither depends on which
+    // variant serialized first.
     let forward = export_json_instance(&MixedArity {
-        a: HasIdx { idx: 9 },
-        b: vec![10, 11],
+        a: Payload::Named { idx: 9 },
+        b: Payload::Positional(10, 11),
     });
-    let reversed = export_json_instance(&MixedArityReversed {
-        b: vec![10, 11],
-        a: HasIdx { idx: 9 },
+    let reversed = export_json_instance(&MixedArity {
+        a: Payload::Positional(10, 11),
+        b: Payload::Named { idx: 9 },
     });
 
     for inst in [&forward, &reversed] {
@@ -983,14 +1213,13 @@ fn mixed_arity_relation_orders_longest_tuples_first() {
             assert_eq!(
                 rel.types.len(),
                 rel.tuples[0].types.len(),
-                "relation {:?}: header arity must match the first tuple's, \
-                 or spytial-core's normalizer replaces the header",
-                rel.name
+                "record {:?}: header arity must match the first tuple's",
+                rel.id
             );
         }
     }
     assert_eq!(
-        relation(&forward, "idx").types,
-        relation(&reversed, "idx").types
+        relation_by_id(&forward, "Payload.idx").types,
+        relation_by_id(&reversed, "Payload.idx").types
     );
 }

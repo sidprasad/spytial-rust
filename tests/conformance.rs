@@ -186,22 +186,11 @@ where
     })
 }
 
-/// Same as [`case`], but turns off spytial-core's datum well-formedness check.
-///
-/// Only for a case whose point is selector behaviour on a value whose datum is
-/// known-malformed for an unrelated reason. Today that means anything holding a
-/// `Vec`, array, tuple, tuple struct or tuple-like enum variant: all of them
-/// trip #88, and the datum error would otherwise mask what the case is about.
-/// Reach for this only with an issue to point at — the check is most of the
-/// value of the harness.
-fn case_skipping_datum_check<T>(name: &str, value: &T, assertions: Value) -> Value
-where
-    T: Serialize + HasSpytialDecorators,
-{
-    let mut case = case(name, value, assertions);
-    case["skipDatumCheck"] = json!(true);
-    case
-}
+/// Every case runs spytial-core's datum well-formedness check as well as its
+/// assertions; that check is most of the value of the harness. The harness
+/// can be told to skip it (`"skipDatumCheck": true` on the case), which was
+/// needed while #88 left every `idx` tuple pointing at an undeclared index
+/// atom. Nothing needs it now, and a case that does should say which issue.
 
 /// Run one case and assert it passed, rendering any failure so a red test
 /// explains itself without a rerun.
@@ -472,8 +461,8 @@ fn equal_none_values_share_an_atom() {
 // A `Vec` field does not relationalize to its elements directly. It goes
 // through an intermediate `sequence` atom and a *ternary* relation,
 // `idx(sequence, index, element)`. That indirection is where a selector is
-// most likely to miss, so both halves are pinned: what does work today, and
-// what does not.
+// most likely to miss, so both halves are pinned: that the graph is
+// connected, and that a selector can join through the index.
 
 #[derive(Serialize, SpytialDecorators)]
 struct Row {
@@ -495,13 +484,11 @@ struct Item {
 /// the container on one side and every element on the other, so the diagram a
 /// user sees is right.
 ///
-/// This is the counterweight to the test below. #88 makes the elements
-/// unreachable *to a selector*, which is easy to misread as "`Vec` rendering is
-/// broken". It is not, and this pins the difference — the sequence atom is a
-/// real node with real edges either way.
-///
-/// The datum check is off because every `Vec` trips #88; that is the subject of
-/// the next test, not this one.
+/// This is the counterweight to the test below, and the two are independent.
+/// While #88 left the index positions undeclared, the elements were unreachable
+/// *to a selector*, which was easy to misread as "`Vec` rendering is broken";
+/// it never was, and this pins the difference — the sequence atom is a real
+/// node with real edges whatever a selector can reach.
 #[test]
 fn vec_connects_its_container_to_its_elements() {
     if harness().is_none() {
@@ -519,7 +506,7 @@ fn vec_connects_its_container_to_its_elements() {
         nth_of_type(&datum, "Item", 1),
     );
 
-    assert_conforms(case_skipping_datum_check(
+    assert_conforms(case(
         "vec graph",
         &row,
         json!([
@@ -693,6 +680,78 @@ fn hidden_atoms_are_reported_and_removed_from_the_graph() {
               "because": "the directive selects the u32 atom and nothing else" },
             { "query": "nodes()", "equals": [&root, &text],
               "because": "a hidden atom is out of the drawn graph, not just marked" },
+        ]),
+    ));
+}
+
+// ──────────────────────────────────────────────
+// 9. Same-named records are one relation to a selector
+// ──────────────────────────────────────────────
+//
+// `Person.name` and `Company.name` are separate records — keyed by source
+// type, each with an exact header — and spytial-core 6.0 keeps records with
+// distinct ids apart rather than merging them by name. A selector still sees
+// one relation `name`: the union of every record carrying it. That union is
+// the property the split rests on, and it is the engine's to keep, so it is
+// pinned here against the engine rather than assumed from the datum's shape.
+// An engine that merged by name (as 5.x did) would pass this too, and one that
+// took only the first record of a name would fail the second query.
+
+#[derive(Serialize, SpytialDecorators)]
+struct Person {
+    name: String,
+}
+
+#[derive(Serialize, SpytialDecorators)]
+struct Company {
+    name: String,
+}
+
+#[derive(Serialize, SpytialDecorators)]
+#[orientation(selector = "name", directions = ["below"])]
+struct Directory {
+    p: Person,
+    c: Company,
+}
+
+#[test]
+fn a_selector_sees_the_union_of_same_named_records() {
+    if harness().is_none() {
+        return;
+    }
+
+    let dir = Directory {
+        p: Person { name: "Ada".into() },
+        c: Company {
+            name: "Acme".into(),
+        },
+    };
+    let datum = export_json_instance(&dir);
+    assert_eq!(
+        datum.relations.iter().filter(|r| r.name == "name").count(),
+        2,
+        "the datum carries two records named `name`"
+    );
+    let person = nth_of_type(&datum, "Person", 0);
+    let company = nth_of_type(&datum, "Company", 0);
+    let labelled = |label: &str| {
+        datum
+            .atoms
+            .iter()
+            .find(|a| a.label == label)
+            .map(|a| a.id.clone())
+            .unwrap_or_else(|| panic!("no atom labelled {label:?}"))
+    };
+    let (ada, acme) = (labelled("Ada"), labelled("Acme"));
+
+    assert_conforms(case(
+        "split records",
+        &dir,
+        json!([
+            { "query": format!("must.below({person})"), "contains": [&ada],
+              "because": "`name` selects Person.name's tuple" },
+            { "query": format!("must.below({company})"), "contains": [&acme],
+              "because": "`name` selects Company.name's tuple as well — the union of both records, not the first" },
         ]),
     ));
 }
