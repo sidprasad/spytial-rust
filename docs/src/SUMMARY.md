@@ -8,6 +8,7 @@
 - [Decorators](./decorators.md)
 - [Running headless & in Docker](./headless.md)
 - [Library API](./library.md)
+- [Relationalization and reification](./relationalization.md)
 
 # Appendix
 

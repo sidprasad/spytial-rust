@@ -88,6 +88,9 @@ sending it to a remote renderer, or feeding a tool with its own UI. It's
 infallible at the call boundary: if serialization fails it logs to stderr
 and returns an empty instance.
 
+See [Relationalization and reification](./relationalization.md) for the atom
+and relation format, its mapping from Serde values, and the reverse operation.
+
 ## `try_export_json_instance(&value) -> Result<…>` — fallible export
 
 ```rust
@@ -104,6 +107,15 @@ silent empty instance. **This is the right choice for library code** that
 wants to surface failure to its caller, and for tests that assert
 serialization succeeded.
 
+## `from_datum::<T>(&instance)` and `replit::<T>(&instance)` — reconstruct
+
+`from_datum` uses `T: DeserializeOwned` to rebuild a Rust value from an
+exported instance. `replit` also requires `Debug` and returns the rebuilt
+value's `{:?}` string. Use `from_datum_root` or `replit_root` when the root atom
+ID is known explicitly. Reconstruction requires a compatible
+`Deserialize` implementation; see [Relationalization and
+reification](./relationalization.md) for its precise scope and limits.
+
 ## Choosing between them
 
 | Use case | Entry point |
@@ -115,3 +127,5 @@ serialization succeeded.
 | Render with a custom YAML spec | `diagram_with_spec(&value, spec)` |
 | Capture relational JSON only | `export_json_instance(&value)` |
 | Same, but surface errors | `try_export_json_instance(&value)` |
+| Rebuild a typed value | `from_datum::<T>(&instance)` |
+| Rebuild and print with `Debug` | `replit::<T>(&instance)` |

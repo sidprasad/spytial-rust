@@ -105,6 +105,7 @@ and return. `dbg!(x)` always returns `x`.
 - [Decorators](./decorators.md) — every layout rule, plus a worked red-black tree.
 - [Running headless & in Docker](./headless.md) — CI, containers, no-display environments.
 - [Library API](./library.md) — using spytial as a dependency instead of a debug macro.
+- [Relationalization and reification](./relationalization.md) — how Serde values become atoms and relations, and how they are reconstructed.
 
 The longer design argument is on Brown PLT's blog:
 [Diagramming Program Values by Spatial Refinement](https://blog.brownplt.org/2026/05/22/spytial.html).

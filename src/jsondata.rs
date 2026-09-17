@@ -17,15 +17,16 @@ use serde::{Deserialize, Serialize};
 ///
 /// # Root atom
 ///
-/// Atoms are stored in serialization order, so **`atoms[0]` is the root** — the
-/// atom for the top-level value — because [`export_json_instance`] emits a
-/// container/struct atom before recursing into its children. Reconstruction
-/// relies on this: [`from_datum`] starts at `atoms[0]`, and [`from_datum_root`]
-/// takes an explicit id for callers that build or reorder an instance themselves.
+/// Atoms are stored in serialization order. Container and struct atoms are
+/// emitted before their children, but a `Some` wrapper for a nested option is
+/// emitted after its inner atom. Therefore `atoms[0]` is not always the root.
+/// [`from_datum`] finds the first atom that no relation targets;
+/// [`from_datum_root`] accepts an explicit id for callers that build or reorder
+/// an instance themselves.
 ///
 /// There is intentionally **no `rootId` field**. For `export` output it would be
-/// redundant (the root is always `atoms[0]`, and the data is acyclic so the root
-/// is also recoverable as the atom that no relation targets), and it would not
+/// redundant for export output (the root is recoverable as an atom that no
+/// relation targets), and it would not
 /// survive a spytial-core round-trip anyway, since unknown JSON keys are dropped.
 /// A future producer that needs an explicit root should pass it to
 /// [`from_datum_root`] rather than rely on a field that silently disappears.
@@ -35,8 +36,8 @@ use serde::{Deserialize, Serialize};
 /// [`from_datum_root`]: crate::from_datum_root
 #[derive(Serialize, Deserialize, Debug)]
 pub struct JsonDataInstance {
-    /// All atoms (graph nodes), in serialization order — `atoms[0]` is the root
-    /// (see the "Root atom" note on [`JsonDataInstance`]).
+    /// All atoms (graph nodes), in serialization order. See the "Root atom"
+    /// note on [`JsonDataInstance`].
     pub atoms: Vec<IAtom>,
     /// All relations (edges), one record per source type and relation name,
     /// in first-seen order.

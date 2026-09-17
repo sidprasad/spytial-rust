@@ -29,9 +29,9 @@
 //! looking for it. Three serde representations cannot work that way, because
 //! they buffer a value *before* they know its type — `#[serde(flatten)]`,
 //! `#[serde(untagged)]`, and the internally and adjacently tagged enum forms.
-//! They call [`Deserializer::deserialize_any`], which answers from the atom's
+//! They call [`serde::de::Deserializer::deserialize_any`], which answers from the atom's
 //! own `type` and outgoing relations rather than from `T`. See that method for
-//! the three pathological shapes it cannot tell apart.
+//! the ambiguous shapes it cannot tell apart.
 //!
 //! What `Serialize` never emits stays unrecoverable, whatever reify does:
 //! `#[serde(skip)]` hides a field from the datum, so `Deserialize` fills it
@@ -308,8 +308,10 @@ impl<'i, 'a> NodeDeserializer<'i, 'a> {
 
         let label = a.label.as_str();
         let Some(relations) = self.index.out.get(self.atom_id) else {
-            // No payload at all: a unit variant, which self-describing formats
-            // write as the bare variant name.
+            // No outgoing relations: usually a unit variant, which
+            // self-describing formats write as the bare variant name. An
+            // empty struct or tuple variant has the same exported shape and
+            // cannot be reconstructed through deserialize_any.
             return visitor.visit_str(label);
         };
 
@@ -365,7 +367,7 @@ impl<'i, 'a, 'de> Deserializer<'de> for NodeDeserializer<'i, 'a> {
     /// own name as the label of a struct, and the *variant's* name as the label
     /// of an externally tagged variant.
     ///
-    /// Three shapes defeat that, all of them pathological and all of them
+    /// Several shapes defeat that, all of them pathological and all of them
     /// documented rather than guessed at:
     ///
     /// * `enum E { E }` — a variant named after its own enum, which reads back
@@ -376,8 +378,11 @@ impl<'i, 'a, 'de> Deserializer<'de> for NodeDeserializer<'i, 'a> {
     ///   variant whose only field is named `variant_value`, which is written
     ///   exactly like the newtype variant `E::V(T)` and reads back as one. A
     ///   second field is enough to separate them.
+    /// * A zero-field struct variant or zero-element tuple variant — it has
+    ///   no outgoing relation, just like a unit variant, and reads back as a
+    ///   bare variant name in this self-describing path.
     ///
-    /// Nothing else collides. A struct field named `idx` is binary where a
+    /// A struct field named `idx` is binary where a
     /// tuple variant's `idx` is ternary, and a field named `map_entry` or
     /// `value` only ever competes with a built-in atom type, never with a
     /// user-named one.
