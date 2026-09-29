@@ -318,6 +318,9 @@ pub enum GroupParams {
         /// (spytial-core 3.0).
         #[serde(rename = "addEdge", default, skip_serializing_if = "Option::is_none")]
         add_edge: Option<GroupEdgeValue>,
+        /// Whether the group caption and its background pill are drawn.
+        #[serde(rename = "showLabel", default, skip_serializing_if = "Option::is_none")]
+        show_label: Option<bool>,
         /// Styling for the group's own label (spytial-core 3.0; `color` only —
         /// group labels auto-fit their box, so `size` is reserved).
         #[serde(rename = "textStyle", default, skip_serializing_if = "Option::is_none")]
@@ -1199,10 +1202,25 @@ impl SpytialDecoratorsBuilder {
     /// Push a selector-based [`GroupConstraint`] with connector and label
     /// styling (spytial-core 3.0) onto the builder.
     pub fn group_selector_based_styled(
+        self,
+        selector: &str,
+        name: &str,
+        add_edge: Option<GroupEdgeValue>,
+        text_style: Option<TextStyle>,
+        negated: bool,
+    ) -> Self {
+        self.group_selector_based_styled_with_label(
+            selector, name, add_edge, None, text_style, negated,
+        )
+    }
+
+    /// Push a selector-based [`GroupConstraint`] with explicit caption visibility.
+    pub fn group_selector_based_styled_with_label(
         mut self,
         selector: &str,
         name: &str,
         add_edge: Option<GroupEdgeValue>,
+        show_label: Option<bool>,
         text_style: Option<TextStyle>,
         negated: bool,
     ) -> Self {
@@ -1212,6 +1230,7 @@ impl SpytialDecoratorsBuilder {
                 selector: selector.to_string(),
                 name: name.to_string(),
                 add_edge,
+                show_label,
                 text_style,
                 negated,
             },

@@ -697,7 +697,12 @@ fn group_add_edge_block_and_label_style() {
 }
 
 #[derive(Serialize, SpytialDecorators)]
-#[group(selector = "Herd.animals", name = "Herd", add_edge = "fromgroup")]
+#[group(
+    selector = "Herd.animals",
+    name = "Herd",
+    add_edge = "fromgroup",
+    show_label = false
+)]
 struct GroupBareAddEdge {
     id: u32,
 }
@@ -707,6 +712,7 @@ fn group_add_edge_bare_direction() {
     let decorators = GroupBareAddEdge::decorators();
     let yaml = to_yaml(&decorators).unwrap();
     assert!(yaml.contains("addEdge: fromgroup"));
+    assert!(yaml.contains("showLabel: false"));
     assert!(!yaml.contains("points:"));
 }
 
