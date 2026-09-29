@@ -8,7 +8,7 @@ works offline and without network access.
 To update, run the script — don't copy files by hand:
 
 ```bash
-scripts/update-spytial-core.sh 6.0.0
+scripts/update-spytial-core.sh 6.4.1
 ```
 
 It pulls the published tarball (a local `npm run build:all` produces the same bytes,

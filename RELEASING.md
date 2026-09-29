@@ -51,7 +51,7 @@ For each crate (`spytial` and `spytial_export_macros`):
 2. Navigate to the crate's settings → **Trusted Publishers**
 3. Add a new GitHub Actions publisher with:
    - **Repository owner**: `sidprasad`
-   - **Repository name**: `spytial`
+   - **Repository name**: `spytial-rust`
    - **Workflow filename**: `release.yml`
    - **Environment**: (leave empty)
 
@@ -70,8 +70,8 @@ any leaked token from being able to publish.
    ```bash
    git checkout main
    git pull
-   git tag v0.0.2
-   git push origin v0.0.2
+   git tag v0.4.0
+   git push origin v0.4.0
    ```
 
 4. The `Release` workflow at `.github/workflows/release.yml` runs
@@ -83,11 +83,11 @@ any leaked token from being able to publish.
 
 Watch progress at https://github.com/sidprasad/spytial-rust/actions.
 
-The workflow also supports manual triggering via `workflow_dispatch` if a
-release needs to be re-run (e.g. after a transient crates.io failure on
-the second publish — the macros crate is already up; trigger the workflow
-again and the macros publish will fail-fast on "already exists" while the
-main crate publish goes through).
+The workflow also supports manual triggering via `workflow_dispatch`. It
+publishes both crates in order, so select a ref whose versions have not yet
+been published. If only the second publish fails after the macros crate is
+live, rerunning the workflow as-is stops at the already-published macros
+crate; publish `spytial` separately or adjust the workflow for that retry.
 
 ## Troubleshooting
 
@@ -102,4 +102,4 @@ workflow run trying to publish. Verify that the repository owner,
 repository name, and workflow filename match exactly (case sensitive).
 
 **Workflow doesn't run on tag push.** Check that the tag name starts with
-`v` (e.g. `v0.0.2`, not `0.0.2`). The trigger is `tags: ['v*']`.
+`v` (e.g. `v0.4.0`, not `0.4.0`). The trigger is `tags: ['v*']`.

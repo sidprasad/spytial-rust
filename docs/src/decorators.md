@@ -111,7 +111,7 @@ Every decorator is a Rust attribute on a type that derives
 | `#[orientation(selector = "...", directions = [...])]` | Place matched pairs in a direction. Required; each value is one of `"above"`, `"below"`, `"left"`, `"right"`, or a `"directly*"` variant. `above`/`below` and `left`/`right` are mutually exclusive, and a `directly*` value admits only its own plain counterpart alongside it. |
 | `#[align(selector = "...", direction = "horizontal" \| "vertical")]` | Force matched atoms to share an axis. |
 | `#[cyclic(selector = "...", direction = "clockwise" \| "counterclockwise")]` | Arrange matched atoms around a ring. `direction` defaults to `clockwise`. |
-| `#[group(selector = "...", name = "...")]` | Cluster related atoms into a labelled region. A binary selector builds one group per distinct first-column atom, keyed by it; a unary selector builds a single unkeyed group. |
+| `#[group(selector = "...", name = "...", show_label = ...)]` | Cluster related atoms into a region. A binary selector builds one group per distinct first-column atom, keyed by it; a unary selector builds a single unkeyed group. Set `show_label = false` to hide the group caption and its background pill while keeping the hull. |
 
 `orientation`, `align`, `cyclic`, and `group` each take an optional
 `negated = true` — see [Negated constraints](#negated-constraints) below.

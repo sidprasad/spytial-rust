@@ -300,13 +300,18 @@ pub fn derive_spytial_decorators(input: TokenStream) -> TokenStream {
                 selector,
                 name,
                 add_edge,
+                show_label,
                 text_style,
                 negated,
             }) => {
                 let ae = quote_add_edge(&add_edge);
+                let sl = match show_label {
+                    Some(b) => quote! { Some(#b) },
+                    None => quote! { None },
+                };
                 let ts = quote_text_style(&text_style);
                 decorator_calls.push(quote! {
-                    .group_selector_based_styled(#selector, #name, #ae, #ts, #negated)
+                    .group_selector_based_styled_with_label(#selector, #name, #ae, #sl, #ts, #negated)
                 });
             }
             Some(SpatialAttribute::AtomColor { selector, value }) => {
@@ -683,6 +688,7 @@ enum SpatialAttribute {
         selector: String,
         name: String,
         add_edge: Option<AddEdgeTok>,
+        show_label: Option<bool>,
         text_style: Option<TextStyleTok>,
         negated: bool,
     },
@@ -1273,12 +1279,14 @@ fn parse_group_args(attr: &Attribute) -> Result<Option<SpatialAttribute>, syn::E
         let name =
             extract_string_from_tokens(&stripped, "name").unwrap_or_else(|| "default".to_string());
         let add_edge = parse_add_edge(attr, &token_str, &stripped)?;
+        let show_label = extract_bool_from_tokens(&stripped, "show_label");
         let text_style = parse_text_style_group(attr, &token_str)?;
 
         Ok(Some(SpatialAttribute::GroupSelector {
             selector,
             name,
             add_edge,
+            show_label,
             text_style,
             negated,
         }))

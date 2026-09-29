@@ -68,6 +68,7 @@ struct Constraints {
     selector = "~works_in",
     name = "teams",
     add_edge = "togroup",
+    show_label = false,
     negated = true
 )]
 #[group(

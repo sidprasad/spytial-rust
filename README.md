@@ -32,7 +32,7 @@ set `SPYTIAL_OUTPUT_PATH=/path/to/session.html` to choose that file.
 
 ```toml
 [dependencies]
-spytial = "0.1"
+spytial = "0.4"
 serde = { version = "1", features = ["derive"] }
 ```
 
