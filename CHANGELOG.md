@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-25
+
+- Updated the bundled spytial-core to 6.8.1 and regenerated the derive
+  macro’s layout specification tables and reference.
+
 ## [0.4.0] - 2026-09-29
 
 - Changed: vendored spytial-core 6.0.0 → 6.4.1 and regenerated the derive
